@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+  <div class="container mt-5">
+    <h1 class="text-center">Login</h1>
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <form action="/signin" method="post">
+          <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+        </form>
+        <hr>
+        <div class="text-center">
+          <a href="/google-login" class="btn btn-danger">Sign in with Google</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

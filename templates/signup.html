@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="signup-form">
+      <form method="POST" action="{{ url_for('signup') }}">
+        <h2 class="text-center mb-4">Sign Up</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="alert alert-{{ messages[0][0] }}">
+              {{ messages[0][1] }}
+            </div>
+          {% endif %}
+        {% endwith %}
+        <div class="form-group">
+          <input type="email" class="form-control" name="email" placeholder="Email" required>
+        </div>
+        <div class="form-group">
+          <input type="name" class="form-control" id="name" name="name" placeholder="Full Name" required>
+        </div>
+        <div class="form-group">
+          <input type="password" class="form-control" name="password" placeholder="Password" required>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+        </div>
+        <a href="{{ url_for('google_signup') }}" class="btn btn-primary">Sign up with Google</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+

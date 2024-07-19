@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome Back{% endblock %}
+
+{% block content %}
+<header class="hero-section">
+  <div class="container">
+    <h1 class="display-4">{{ session['name'] }}, Welcome Back!</h1>
+    <div class="mt-4">
+      <a href="#" class="btn btn-light btn-lg me-2">Simulator</a>
+      <a href="#" class="btn btn-outline-light btn-lg">LemonadeLearn</a>
+    </div>
+  </div>
+</header>
+
+<main class="container my-5">
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title h5 mb-0">Market Overview</h2>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <div class="chart-placeholder">SPY Chart</div>
+              <p class="text-center mt-2">SPY</p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="chart-placeholder">DOW Chart</div>
+              <p class="text-center mt-2">DOW</p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="chart-placeholder">NASDAQ Chart</div>
+              <p class="text-center mt-2">NASDAQ</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 class="card-title h5 mb-0">Your Watchlist</h2>
+          <button class="btn btn-sm btn-custom">+ Add Stock</button>
+        </div>
+        <div class="card-body">
+          <div class="watchlist-scroll">
+            <!-- Placeholder for watchlist items -->
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <div class="chart-placeholder" style="height: 100px;">AAPL</div>
+              </div>
+              <div class="col-md-3">
+                <div class="chart-placeholder" style="height: 100px;">GOOGL</div>
+              </div>
+              <div class="col-md-3">
+                <div class="chart-placeholder" style="height: 100px;">TSLA</div>
+              </div>
+              <div class="col-md-3">
+                <div class="chart-placeholder" style="height: 100px;">AMZN</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title h5 mb-0">News Headlines</h2>
+        </div>
+        <div class="card-body">
+          <div class="news-scroll">
+            <div class="mb-3">
+              <h6>Federal Reserve hikes interest rates by a quarter point</h6>
+              <p class="small text-muted">Wall Street Journal <a href="#">Continue reading...</a></p>
+            </div>
+            <div class="mb-3">
+              <h6>Tech stocks rally amid positive earnings reports</h6>
+              <p class="small text-muted">CNBC <a href="#">Continue reading...</a></p>
+            </div>
+            <div class="mb-3">
+              <h6>Oil prices surge as global demand increases</h6>
+              <p class="small text-muted">Bloomberg <a href="#">Continue reading...</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-5">
+    <a href="#" class="btn btn-custom me-2">Go to Newsroom</a>
+    <a href="#" class="btn btn-outline-secondary">Learn About Our Mission</a>
+  </div>
+</main>
+
+<footer class="bg-light py-4 mt-5">
+  <div class="container text-center">
+    <p>&copy; 2024 LemonadeChains. All rights reserved.</p>
+  </div>
+</footer>
+{% endblock %}

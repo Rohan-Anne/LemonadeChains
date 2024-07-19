@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Stop Losing Money{% endblock %}
+
+{% block content %}
+
+<style>
+  .hero-section {
+    background: linear-gradient(135deg, #3498db, #8e44ad);
+    color: white;
+    padding: 100px 0;
+  }
+  .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #3498db;
+  }
+</style>
+
+<header class="hero-section">
+  <div class="container text-center">
+    <h1 class="display-4 mb-4">Options Trading, Risk-Free</h1>
+    <p class="lead mb-5">Experience the forces of the market with our simulator. Learn, practice, and refine your strategies without risking real money.</p>
+    <a href="#" class="btn btn-light btn-lg">Start Simulating</a>
+  </div>
+</header>
+
+<main class="container my-5">
+  <section class="row g-4">
+    <div class="col-md-4">
+      <div class="text-center">
+        <i class="fas fa-chart-line feature-icon"></i>
+        <h3>Real-Time Data</h3>
+        <p>Access live market data and practice trading in real-world conditions.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="text-center">
+        <i class="fas fa-graduation-cap feature-icon"></i>
+        <h3>Learn as You Trade</h3>
+        <p>Gain insights into various financial instruments and trading strategies.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="text-center">
+        <i class="fas fa-trophy feature-icon"></i>
+        <h3>Risk-Free Practice</h3>
+        <p>Hone your skills without the fear of losing real money.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="my-5">
+    <h2 class="text-center mb-4">How It Works</h2>
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <h3>1. Sign Up</h3>
+        <p>Create your free account and get instant access to our trading simulator.</p>
+        <h3>2. Fund Your Virtual Account</h3>
+        <p>Start with $100,000 in virtual cash to build your portfolio.</p>
+        <h3>3. Start Trading</h3>
+        <p>Browse stocks, make trades, and watch your investments grow (or shrink)!</p>
+        <h3>4. Learn and Improve</h3>
+        <p>Analyze your performance, learn from mistakes, and become a better trader.</p>
+      </div>
+      <div class="col-md-6">
+        <!-- Image placeholder -->
+        <div class="bg-light p-4 text-center">
+          [Place an image here showing a screenshot of the simulator interface or a person using a computer with financial charts on the screen]
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
