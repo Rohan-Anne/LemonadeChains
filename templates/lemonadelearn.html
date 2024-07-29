@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}LemonadeLearn{% endblock %}
+
+{% block content %}
+<header class="hero-section">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <h1 class="display-4 mb-4">The building blocks of your financial journey</h1>
+        <p class="lead">What you need to know about options trading from the get-go.</p>
+      </div>
+      <div class="col-lg-4">
+        <div class="progress-card">
+          <h3 class="h5">Pick up where you left off</h3>
+          <h4 class="h6 mt-3">01. Getting started</h4>
+          <div class="progress mt-2">
+            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+          </div>
+          <a href="#" class="btn btn-primary mt-3">Continue Learning</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container my-5">
+  <h2 class="mb-4">Options 101</h2>
+  <p class="mb-4">A good place to start. Get the low-down before you dive in.</p>
+
+  <div class="article-card">
+    <div class="card">
+      <div class="card-body d-flex align-items-center">
+        <div class="form-check me-3">
+          <input class="form-check-input checkbox-lg" type="checkbox" value="" id="article1">
+        </div>
+        <div>
+          <h5 class="card-title mb-1">01. Getting Started</h5>
+          <p class="card-text">Introduction to options trading and basic concepts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="article-card">
+    <div class="card">
+      <div class="card-body d-flex align-items-center">
+        <div class="form-check me-3">
+          <input class="form-check-input checkbox-lg" type="checkbox" value="" id="article2">
+        </div>
+        <div>
+          <h5 class="card-title mb-1">02. Vocab</h5>
+          <p class="card-text">Essential terminology for options trading.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="article-card">
+    <div class="card">
+      <div class="card-body d-flex align-items-center">
+        <div class="form-check me-3">
+          <input class="form-check-input checkbox-lg" type="checkbox" value="" id="article3">
+        </div>
+        <div>
+          <h5 class="card-title mb-1">03. Types of Options</h5>
+          <p class="card-text">Understanding different types of options contracts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

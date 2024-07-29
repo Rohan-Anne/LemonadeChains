@@ -151,6 +151,10 @@ def simulator():
         return redirect(url_for('login'))
     return render_template('simulator.html')
 
+@app.route('/lemonadelearn')
+def lemonade_learn():
+    return render_template('lemonadelearn.html')
+
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
