@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from google.oauth2.id_token import verify_oauth2_token
@@ -6,6 +6,10 @@ from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend.OptionsAccount import OptionsAccount
+import yfinance as yf
+import requests
+import time
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -72,22 +76,17 @@ def callback():
 
         # Check if user already exists
         user_ref = db.collection('users').document(user_id)
-        print(f"Type of user_ref: {type(user_ref)}")
 
         # Check if the get() method is callable
-        print(f"Is get() callable? {callable(user_ref.get)}")
 
         user_doc = user_ref.get()
-        print(f"Type of user_doc: {type(user_doc)}")
 
         # Debugging exists() check
         print(f"Is exists callable? {callable(user_doc.exists)}")
         print(f"Document exists: {user_doc.exists}")
 
         if user_doc.exists:
-            print("Document exists method checked")
             user_dict = user_doc.to_dict()
-            print(f"User Document Dictionary: {user_dict}")
 
             # Load the user's OptionsAccount
             options_account_data = user_dict
@@ -210,25 +209,155 @@ def homepage():
         return redirect(url_for('login'))
     return render_template('homepage.html')
 
+
+
+
+"""
+@app.route('/search_ticker')
+def search_ticker():
+    query = request.args.get('query')
+    print(f"Received query: {query}")  # Log the received query
+    
+    if not query:
+        return jsonify([])
+
+    try:
+        # Attempt to fetch ticker info using yfinance
+        ticker = yf.Ticker(query)
+        stock_info = ticker.info
+
+        if not stock_info or 'symbol' not in stock_info or 'shortName' not in stock_info:
+            print(f"No valid stock info found for query: {query}")  # Log if no valid info is found
+            return jsonify([])
+
+        # Log and return the result
+        print(f"Found ticker: {stock_info['symbol']} - {stock_info['shortName']}")
+        return jsonify([{
+            'symbol': stock_info['symbol'],
+            'name': stock_info['shortName']
+        }])
+    
+    except Exception as e:
+        print(f"Error fetching ticker data: {e}")  # Log any exceptions
+        return jsonify([])  # Return an empty list if an error occurs
+"""
+
+@app.route('/get_stock_price')
+def get_stock_price():
+    ticker = request.args.get('ticker')
+    
+    if not ticker:
+        return jsonify({'error': 'Ticker symbol is required'}), 400
+    
+    try:
+        # Fetch stock data using yfinance
+        stock = yf.Ticker(ticker)
+        
+        # Get the current price
+        current_price = stock.history(period="1d")['Close'].iloc[-1]
+        
+        # Get the last 5 days of closing prices for the chart
+        history = stock.history(period="5d")['Close'].tolist()
+
+        return jsonify({
+            'price': round(current_price, 2),  # Return the current price rounded to 2 decimal places
+            'prices': [round(price, 2) for price in history]  # Return the last 5 closing prices
+        })
+    except Exception as e:
+        print(f"Error fetching stock data: {e}")
+        return jsonify({'error': 'Failed to fetch stock data'}), 500
+
+
+@app.route('/search_ticker')
+def search_ticker():
+    query = request.args.get('query')
+    print(f"Received query: {query}")
+    
+    if not query:
+        return jsonify([])
+
+    try:
+        # Use custom headers to mimic a browser request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+        }
+        
+        response = requests.get(f"https://query2.finance.yahoo.com/v1/finance/search?q={query}", headers=headers)
+
+        if response.status_code == 429:
+            print("Rate limited by Yahoo Finance API. Please slow down your requests.")
+            return jsonify({"error": "Too many requests, please try again later."})
+
+        if response.status_code != 200:
+            print(f"Error: Received status code {response.status_code}")
+            return jsonify([])
+
+        # Parse the response as JSON
+        search_results = response.json()
+
+        results = []
+        for result in search_results.get('quotes', []):
+            if 'symbol' in result and 'shortname' in result and result.get('quoteType') == 'EQUITY':
+                results.append({
+                    'symbol': result['symbol'],
+                    'name': result['shortname']
+                })
+            if len(results) >= 10:
+                break
+
+        return jsonify(results)
+    
+    except Exception as e:
+        print(f"Error fetching search results: {e}")
+        return jsonify([])
+
+
+@app.route('/add_to_watchlist', methods=['POST'])
+def add_to_watchlist():
+    data = request.json
+    ticker = data.get('ticker')
+
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not logged in'})
+
+    user_id = session['user_id']
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        watchlist = user_data.get('watchlist', [])
+
+        if ticker not in watchlist:
+            watchlist.append(ticker)
+            user_ref.update({'watchlist': watchlist})
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': 'Ticker already in watchlist'})
+
+    return jsonify({'success': False, 'message': 'User record not found'})
+
+
 @app.route('/simulator')
 def simulator():
     if 'user_id' not in session:
         flash('You are not logged in', 'danger')
         return redirect(url_for('login'))
-    
-    # Retrieve the serialized OptionsAccount from the session and recreate the object
-    options_account_data = session.get('options_account')
-    if options_account_data:
-        options_account = OptionsAccount.from_dict(options_account_data)
-    
-        # Example: Displaying balance
-        flash(f"Current Balance: ${options_account.balance}", 'info')
+
+    user_id = session['user_id']
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        watchlist = user_data.get('watchlist', [])
+        return render_template('simulator.html', watchlist=watchlist)
     else:
-        flash('OptionsAccount data not found in session.', 'danger')
-    
-    return render_template('simulator.html')
-
-
+        flash('User record not found', 'danger')
+        return redirect(url_for('login'))
 
 @app.route('/lemonadelearn')
 def lemonade_learn():

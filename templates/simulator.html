@@ -9,6 +9,8 @@
     --primary-color: #3498db;
     --secondary-color: #8e44ad;
   }
+
+  /* General page styling */
   .navbar-custom {
     background-color: #f8f9fa;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -19,7 +21,7 @@
     padding: 50px 0;
   }
   .card {
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1);
     margin-bottom: 20px;
   }
   .card-header {
@@ -49,6 +51,83 @@
     border-color: var(--secondary-color);
     color: white;
   }
+
+  /* Enhanced search bar styling */
+  .search-bar-container {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .search-bar {
+    width: 100%;
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    border-radius: 50px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 16px;
+  }
+  .search-bar:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  .search-results-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .list-group-item {
+    cursor: pointer;
+    padding: 10px 20px;
+  }
+  .list-group-item:hover {
+    background-color: #f1f1f1;
+  }
+
+  /* Watchlist styling */
+  .watchlist-container {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .watchlist-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+  .watchlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    margin-bottom: 8px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .watchlist-item:hover {
+    background-color: #f8f9fa;
+  }
+  .stock-info {
+    display: flex;
+    flex-direction: column;
+    margin-right: 20px;
+  }
+  .stock-price {
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+  }
+  .chart-container {
+    width: 100px;
+    height: 50px;
+  }
 </style>
 
 <header class="hero-section">
@@ -64,7 +143,14 @@
 <main class="container my-5">
   <div class="row">
     <div class="col-lg-8">
-      <div class="card">
+      <!-- Enhanced Search bar for finding stocks/tickers -->
+      <div class="search-bar-container">
+        <input type="text" id="search-bar" class="search-bar" placeholder="Search for stocks or tickers...">
+        <ul id="search-results" class="list-group search-results-container" style="display: none;"></ul>
+      </div>
+
+      <!-- Market Overview -->
+      <div class="card mt-4">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">Market Overview</h2>
         </div>
@@ -76,8 +162,7 @@
             </div>
             <div class="col-md-4 mb-3">
               <div class="chart-placeholder">DOW Chart</div>
-              <p class="text-center mt-2">DOW</p>
-            </div>
+              <p class="text-center mt-2">DOW</div>
             <div class="col-md-4 mb-3">
               <div class="chart-placeholder">NASDAQ Chart</div>
               <p class="text-center mt-2">NASDAQ</p>
@@ -86,28 +171,26 @@
         </div>
       </div>
 
+      <!-- Watchlist -->
       <div class="card mt-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h2 class="card-title h5 mb-0">Your Watchlist</h2>
-          <button class="btn btn-sm btn-custom">+ Add Stock</button>
+          <h2 class="card-title h5 mb-0 watchlist-title">Your Watchlist</h2>
         </div>
-        <div class="card-body">
+        <div class="card-body watchlist-container">
           <div class="watchlist-scroll">
-            <!-- Placeholder for watchlist items -->
-            <div class="row mb-3">
-              <div class="col-md-3">
-                <div class="chart-placeholder" style="height: 100px;">AAPL</div>
-              </div>
-              <div class="col-md-3">
-                <div class="chart-placeholder" style="height: 100px;">GOOGL</div>
-              </div>
-              <div class="col-md-3">
-                <div class="chart-placeholder" style="height: 100px;">TSLA</div>
-              </div>
-              <div class="col-md-3">
-                <div class="chart-placeholder" style="height: 100px;">AMZN</div>
-              </div>
-            </div>
+            <ul id="watchlist" class="list-group">
+              {% for ticker in watchlist %}
+              <li class="list-group-item watchlist-item">
+                <div class="stock-info">
+                  <div>{{ ticker }}</div>
+                  <div class="stock-price" id="price-{{ ticker }}"></div>
+                </div>
+                <div class="chart-container">
+                  <canvas id="chart-{{ ticker }}"></canvas>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
           </div>
         </div>
       </div>
@@ -144,6 +227,146 @@
   </div>
 </main>
 
+<!-- Include Chart.js for the stock growth charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Fetch and update stock prices dynamically
+  function updateStockPrices() {
+    const tickers = {{ watchlist | tojson }};
+    tickers.forEach(ticker => {
+      fetch(`/get_stock_price?ticker=${ticker}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
+          updateStockChart(ticker, data.prices);
+        })
+        .catch(error => console.error('Error fetching stock price:', error));
+    });
+  }
+
+  // Update the stock growth chart using Chart.js
+  function updateStockChart(ticker, prices) {
+    const ctx = document.getElementById(`chart-${ticker}`).getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: prices.map((_, index) => index),  // X-axis labels (could be dates)
+        datasets: [{
+          label: `${ticker} Price`,
+          data: prices,  // Y-axis data (prices)
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          borderColor: 'rgba(52, 152, 219, 1)',
+          borderWidth: 2,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            display: false  // Hide the X-axis labels for simplicity
+          },
+          y: {
+            ticks: {
+              callback: function(value) {
+                return '$' + value;  // Add dollar sign to Y-axis labels
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false  // Hide the legend
+          }
+        }
+      }
+    });
+  }
+
+  // Initialize stock prices and charts on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    updateStockPrices();
+    setInterval(updateStockPrices, 30000);  // Update every 30 seconds
+  });
+
+  // Functionality for search bar and watchlist remains the same as before
+  document.getElementById('search-bar').addEventListener('input', function() {
+    let query = this.value;
+
+    if (query.length > 2) {  // Start searching after 3 characters
+      fetch(`/search_ticker?query=${query}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Search results:', data); // Debugging: log the search results
+          let resultsContainer = document.getElementById('search-results');
+          resultsContainer.innerHTML = '';  // Clear previous results
+
+          if (data.length > 0) {
+            resultsContainer.style.display = 'block';
+            data.forEach(ticker => {
+              let listItem = document.createElement('li');
+              listItem.classList.add('list-group-item');
+              listItem.textContent = `${ticker.name} (${ticker.symbol})`;
+              listItem.onclick = function() {
+                addToWatchlist(ticker.symbol);
+              };
+              resultsContainer.appendChild(listItem);
+            });
+          } else {
+            resultsContainer.style.display = 'none';
+          }
+        })
+        .catch(error => console.error('Error fetching search results:', error));
+    } else {
+      document.getElementById('search-results').style.display = 'none';
+    }
+  });
+
+  function addToWatchlist(ticker) {
+    fetch(`/add_to_watchlist`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticker: ticker })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Add to watchlist response:', data); // Debugging: log the response
+        if (data.success) {
+            let watchlist = document.getElementById('watchlist');
+            let listItem = document.createElement('li');
+            listItem.classList.add('list-group-item', 'watchlist-item');
+            listItem.innerHTML = `
+                <div class="stock-info">
+                    <div>${ticker}</div>
+                    <div class="stock-price" id="price-${ticker}"></div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chart-${ticker}"></canvas>
+                </div>`;
+            watchlist.appendChild(listItem);
+
+            // Fetch and update the price and chart immediately
+            fetch(`/get_stock_price?ticker=${ticker}`)
+                .then(response => response.json())
+                .then(stockData => {
+                    document.getElementById(`price-${ticker}`).textContent = `$${stockData.price}`;
+                    updateStockChart(ticker, stockData.prices);
+                })
+                .catch(error => console.error('Error fetching stock price:', error));
+        }
+    })
+    .catch(error => console.error('Error adding to watchlist:', error));
+}
+
+</script>
+
 {% endblock %}
+
+
+
 
 
