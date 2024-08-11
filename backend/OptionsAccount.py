@@ -120,7 +120,7 @@ class OptionsAccount:
             print("Please sign in before performing any transactions.")
             return 0
         
-        total_value = 0
+        total_value = self.balance
         for key, position in self.positions.items():
             price = self.options_manager.calculateOptionPrice(
                 position['ticker'],
@@ -133,7 +133,7 @@ class OptionsAccount:
             position_value = price * position['quantity']
             total_value += position_value
         
-        print(f"Current Portfolio Value: ${total_value:.2f}")
+        
         return total_value
 
     def plot_combined_profit_loss(self, tickers_and_keys, stock_price_range=None):
