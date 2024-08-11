@@ -340,6 +340,32 @@ def add_to_watchlist():
 
     return jsonify({'success': False, 'message': 'User record not found'})
 
+@app.route('/remove_from_watchlist', methods=['POST'])
+def remove_from_watchlist():
+    data = request.json
+    ticker = data.get('ticker')
+
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not logged in'})
+
+    user_id = session['user_id']
+    user_ref = db.collection('users').document(user_id)
+    user_doc = user_ref.get()
+
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        watchlist = user_data.get('watchlist', [])
+
+        if ticker in watchlist:
+            watchlist.remove(ticker)
+            user_ref.update({'watchlist': watchlist})
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': 'Ticker not in watchlist'})
+
+    return jsonify({'success': False, 'message': 'User record not found'})
+
+
 
 @app.route('/simulator')
 def simulator():
@@ -358,6 +384,47 @@ def simulator():
     else:
         flash('User record not found', 'danger')
         return redirect(url_for('login'))
+
+@app.route('/stock/<string:ticker>')
+def stock_detail(ticker):
+    if 'user_id' not in session:
+        flash('You are not logged in', 'danger')
+        return redirect(url_for('login'))
+
+    try:
+        stock = yf.Ticker(ticker)
+        stock_info = stock.info
+        
+        if not stock_info or 'symbol' not in stock_info:
+            flash(f"No data found for ticker {ticker}", 'danger')
+            return redirect(url_for('simulator'))
+        
+        # Fetch stock data for the chart
+        history = stock.history(period="1mo")['Close'].tolist()
+
+        # Fetch the user's watchlist
+        user_id = session['user_id']
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            watchlist = user_data.get('watchlist', [])
+        else:
+            watchlist = []
+
+        return render_template('stock_detail.html', 
+                               ticker=stock_info['symbol'], 
+                               name=stock_info['longName'] if 'longName' in stock_info else stock_info['shortName'], 
+                               description=stock_info.get('longBusinessSummary', 'No description available.'),
+                               prices=history,
+                               watchlist=watchlist)
+
+    except Exception as e:
+        flash(f"Error fetching stock data: {e}", 'danger')
+        return redirect(url_for('simulator'))
+
+
 
 @app.route('/lemonadelearn')
 def lemonade_learn():

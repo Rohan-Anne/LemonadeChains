@@ -38,7 +38,7 @@
     font-size: 1.2rem;
   }
   .watchlist-scroll, .news-scroll {
-    max-height: 300px;
+    max-height: 600px; /* Adjusted for the vertical watchlist */
     overflow-y: auto;
   }
   .btn-custom {
@@ -96,6 +96,7 @@
     background-color: #f8f9fa;
     padding: 10px;
     border-radius: 8px;
+    height: 100%; /* Ensure the watchlist takes full height */
   }
   .watchlist-title {
     font-size: 18px;
@@ -142,6 +143,7 @@
 
 <main class="container my-5">
   <div class="row">
+    <!-- Left Column for Market Overview and Search -->
     <div class="col-lg-8">
       <!-- Enhanced Search bar for finding stocks/tickers -->
       <div class="search-bar-container">
@@ -162,7 +164,8 @@
             </div>
             <div class="col-md-4 mb-3">
               <div class="chart-placeholder">DOW Chart</div>
-              <p class="text-center mt-2">DOW</div>
+              <p class="text-center mt-2">DOW</p>
+            </div>
             <div class="col-md-4 mb-3">
               <div class="chart-placeholder">NASDAQ Chart</div>
               <p class="text-center mt-2">NASDAQ</p>
@@ -171,33 +174,8 @@
         </div>
       </div>
 
-      <!-- Watchlist -->
+      <!-- News Headlines -->
       <div class="card mt-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h2 class="card-title h5 mb-0 watchlist-title">Your Watchlist</h2>
-        </div>
-        <div class="card-body watchlist-container">
-          <div class="watchlist-scroll">
-            <ul id="watchlist" class="list-group">
-              {% for ticker in watchlist %}
-              <li class="list-group-item watchlist-item">
-                <div class="stock-info">
-                  <div>{{ ticker }}</div>
-                  <div class="stock-price" id="price-{{ ticker }}"></div>
-                </div>
-                <div class="chart-container">
-                  <canvas id="chart-{{ ticker }}"></canvas>
-                </div>
-              </li>
-              {% endfor %}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-4">
-      <div class="card">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">News Headlines</h2>
         </div>
@@ -216,6 +194,30 @@
               <p class="small text-muted">Bloomberg <a href="#">Continue reading...</a></p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column for Watchlist -->
+    <div class="col-lg-4">
+      <div class="card watchlist-container">
+        <div class="card-header">
+          <h2 class="card-title h5 mb-0 watchlist-title">Your Watchlist</h2>
+        </div>
+        <div class="card-body watchlist-scroll">
+          <ul id="watchlist" class="list-group">
+            {% for ticker in watchlist %}
+            <li class="list-group-item watchlist-item">
+              <div class="stock-info">
+                <div>{{ ticker }}</div>
+                <div class="stock-price" id="price-{{ ticker }}"></div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-{{ ticker }}"></canvas>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
     </div>
@@ -295,34 +297,36 @@
   document.getElementById('search-bar').addEventListener('input', function() {
     let query = this.value;
 
-    if (query.length > 2) {  // Start searching after 3 characters
-      fetch(`/search_ticker?query=${query}`)
-        .then(response => response.json())
-        .then(data => {
-          console.log('Search results:', data); // Debugging: log the search results
-          let resultsContainer = document.getElementById('search-results');
-          resultsContainer.innerHTML = '';  // Clear previous results
+    if (query.length > 0) {
+        fetch(`/search_ticker?query=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Search results:', data);
+                let resultsContainer = document.getElementById('search-results');
+                resultsContainer.innerHTML = '';  // Clear previous results
 
-          if (data.length > 0) {
-            resultsContainer.style.display = 'block';
-            data.forEach(ticker => {
-              let listItem = document.createElement('li');
-              listItem.classList.add('list-group-item');
-              listItem.textContent = `${ticker.name} (${ticker.symbol})`;
-              listItem.onclick = function() {
-                addToWatchlist(ticker.symbol);
-              };
-              resultsContainer.appendChild(listItem);
-            });
-          } else {
-            resultsContainer.style.display = 'none';
-          }
-        })
-        .catch(error => console.error('Error fetching search results:', error));
+                if (data.length > 0) {
+                    resultsContainer.style.display = 'block';
+                    data.forEach(ticker => {
+                        let listItem = document.createElement('li');
+                        listItem.classList.add('list-group-item');
+                        listItem.textContent = `${ticker.name} (${ticker.symbol})`;
+                        listItem.onclick = function() {
+                            // Redirect to the stock detail page
+                            window.location.href = `/stock/${ticker.symbol}`;
+                        };
+                        resultsContainer.appendChild(listItem);
+                    });
+                } else {
+                    resultsContainer.style.display = 'none';
+                }
+            })
+            .catch(error => console.error('Error fetching search results:', error));
     } else {
-      document.getElementById('search-results').style.display = 'none';
+        document.getElementById('search-results').style.display = 'none';
     }
-  });
+});
+
 
   function addToWatchlist(ticker) {
     fetch(`/add_to_watchlist`, {
