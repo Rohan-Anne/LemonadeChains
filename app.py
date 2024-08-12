@@ -9,7 +9,9 @@ from backend.OptionsAccount import OptionsAccount
 import yfinance as yf
 import requests
 import time
-
+from backend.OptionsManager import OptionsManager
+import pandas as pd
+import numpy as np
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -424,6 +426,70 @@ def stock_detail(ticker):
         flash(f"Error fetching stock data: {e}", 'danger')
         return redirect(url_for('simulator'))
 
+@app.route('/options/<ticker>')
+def options_detail(ticker):
+    if 'user_id' not in session:
+        flash('You are not logged in', 'danger')
+        return redirect(url_for('login'))
+
+    # Fetch available expiration dates for the ticker
+    options_manager = OptionsManager()
+    ticker_data = yf.Ticker(ticker)
+    expiration_dates = ticker_data.options
+
+    return render_template('options_detail.html', ticker=ticker, expiration_dates=expiration_dates)
+
+
+@app.route('/get_options_data', methods=['POST'])
+def get_options_data():
+    data = request.json
+    ticker = data.get('ticker')
+    expiration_date = data.get('expiration_date')
+    strike_price_range = data.get('strike_price_range')
+    option_type_filter = data.get('option_type')
+
+    print(f"Ticker: {ticker}, Expiration Date: {expiration_date}, Strike Price Range: {strike_price_range}, Option Type: {option_type_filter}")
+
+    if not ticker or not expiration_date:
+        return jsonify({'error': 'Ticker and expiration date are required'}), 400
+
+    options_manager = OptionsManager()
+    try:
+        chain_data = options_manager.getChainData(ticker, expiration_date)
+        calls = chain_data.calls
+        puts = chain_data.puts
+
+        print(f"Calls: {calls.shape}, Puts: {puts.shape}")
+
+        # Apply filtering
+        if strike_price_range:
+            min_strike, max_strike = strike_price_range
+            calls = calls[(calls['strike'] >= min_strike) & (calls['strike'] <= max_strike)]
+            puts = puts[(puts['strike'] >= min_strike) & (puts['strike'] <= max_strike)]
+
+        if option_type_filter == 'calls':
+            puts = pd.DataFrame()  # Empty DataFrame for puts
+        elif option_type_filter == 'puts':
+            calls = pd.DataFrame()  # Empty DataFrame for calls
+
+        # Replace NaN values with None (JSON-compatible null)
+        calls = calls.replace({np.nan: None})
+        puts = puts.replace({np.nan: None})
+
+        # Convert implied volatility to percentage
+        calls['impliedVolatility'] = calls['impliedVolatility'].apply(lambda x: round(x * 100, 2) if x is not None else x)
+        puts['impliedVolatility'] = puts['impliedVolatility'].apply(lambda x: round(x * 100, 2) if x is not None else x)
+
+        calls_data = calls.to_dict(orient='records')
+        puts_data = puts.to_dict(orient='records')
+
+        print(f"Filtered Calls: {len(calls_data)}, Filtered Puts: {len(puts_data)}")
+
+        return jsonify({'calls': calls_data, 'puts': puts_data})
+
+    except Exception as e:
+        print(f"Error fetching options data: {e}")
+        return jsonify({'error': 'Failed to fetch options data'}), 500
 
 
 @app.route('/lemonadelearn')

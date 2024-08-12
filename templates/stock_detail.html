@@ -122,7 +122,10 @@
           <button class="btn btn-custom mt-4" onclick="addToWatchlist('{{ ticker }}')">Add to Watchlist</button>
           
           <!-- Remove from Watchlist Button -->
-          <button class="btn btn-danger-custom mt-2" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
+          <button class="btn btn-danger-custom mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
+
+          <a class="btn btn-custom mt-4" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Data</a>
+
         </div>
       </div>
     </div>

@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Options for {{ ticker }}{% endblock %}
+
+{% block content %}
+<style>
+  .table-container {
+    margin-top: 20px;
+  }
+  .filter-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .filter-group {
+    margin-bottom: 10px;
+  }
+</style>
+
+<div class="container">
+  <h1 class="mt-4">{{ ticker }} Options</h1>
+
+  <!-- Filter Section -->
+  <div class="filter-container">
+    <div class="filter-group">
+      <label for="expiration-date">Expiration Date:</label>
+      <select id="expiration-date" class="form-control">
+        {% for date in expiration_dates %}
+          <option value="{{ date }}">{{ date }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="strike-range">Strike Price Range:</label>
+      <input type="number" id="strike-min" class="form-control" placeholder="Min Strike">
+      <input type="number" id="strike-max" class="form-control" placeholder="Max Strike">
+    </div>
+    <div class="filter-group">
+      <label for="option-type">Option Type:</label>
+      <select id="option-type" class="form-control">
+        <option value="both">Both</option>
+        <option value="calls">Calls</option>
+        <option value="puts">Puts</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <button id="apply-filters" class="btn btn-primary">Apply Filters</button>
+    </div>
+  </div>
+
+  <!-- Calls Options Table -->
+  <div class="table-container">
+    <h3>Call Options</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Contract Name</th>
+          <th>Last Trade Date</th>
+          <th>Strike</th>
+          <th>Last Price</th>
+          <th>Bid</th>
+          <th>Ask</th>
+          <th>Change</th>
+          <th>% Change</th>
+          <th>Volume</th>
+          <th>Open Interest</th>
+          <th>Implied Volatility</th>
+        </tr>
+      </thead>
+      <tbody id="calls-table-body">
+        <!-- Call options will be loaded here -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Puts Options Table -->
+  <div class="table-container">
+    <h3>Put Options</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Contract Name</th>
+          <th>Last Trade Date</th>
+          <th>Strike</th>
+          <th>Last Price</th>
+          <th>Bid</th>
+          <th>Ask</th>
+          <th>Change</th>
+          <th>% Change</th>
+          <th>Volume</th>
+          <th>Open Interest</th>
+          <th>Implied Volatility</th>
+        </tr>
+      </thead>
+      <tbody id="puts-table-body">
+        <!-- Put options will be loaded here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  document.getElementById('apply-filters').addEventListener('click', function() {
+    console.log('Apply Filters clicked');  // Check if the click event is registered
+
+    const ticker = '{{ ticker }}';
+    const expirationDate = document.getElementById('expiration-date').value;
+    const strikeMin = document.getElementById('strike-min').value;
+    const strikeMax = document.getElementById('strike-max').value;
+    const optionType = document.getElementById('option-type').value;
+
+    console.log(`Filters - Ticker: ${ticker}, Expiration Date: ${expirationDate}, Strike Min: ${strikeMin}, Strike Max: ${strikeMax}, Option Type: ${optionType}`);
+
+    const filters = {
+        ticker: ticker,
+        expiration_date: expirationDate,
+        strike_price_range: strikeMin && strikeMax ? [parseFloat(strikeMin), parseFloat(strikeMax)] : null,
+        option_type: optionType
+    };
+
+    fetch('/get_options_data', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(filters)
+})
+.then(response => {
+    console.log('Response:', response);  // Log the full response object
+    return response.json();
+})
+.then(data => {
+    console.log('Received data:', data);  // Log the parsed JSON data
+    if (data.error) {
+        console.error('Error in data:', data.error);  // Log any errors reported by the server
+    } else {
+        console.log('Call Options:', data.calls);  // Log the call options
+        console.log('Put Options:', data.puts);    // Log the put options
+
+        // Check the first element to see if it's structured correctly
+        if (data.calls.length > 0) {
+            console.log('First Call Option:', data.calls[0]);
+        }
+
+        populateTable('calls-table-body', data.calls);
+        populateTable('puts-table-body', data.puts);
+    }
+})
+.catch(error => console.error('Error fetching options data:', error));
+
+
+
+});
+
+function populateTable(tableBodyId, data) {
+    const tableBody = document.getElementById(tableBodyId);
+    tableBody.innerHTML = '';  // Clear the table body
+
+    data.forEach(option => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${option.contractSymbol}</td>
+            <td>${new Date(option.lastTradeDate).toLocaleString()}</td>
+            <td>${option.strike}</td>
+            <td>${option.lastPrice}</td>
+            <td>${option.bid}</td>
+            <td>${option.ask}</td>
+            <td>${option.change}</td>
+            <td>${option.percentChange}</td>
+            <td>${option.volume}</td>
+            <td>${option.openInterest}</td>
+            <td>${option.impliedVolatility}%</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+
+</script>
+{% endblock %}
