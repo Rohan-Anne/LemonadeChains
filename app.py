@@ -382,7 +382,17 @@ def simulator():
     if user_doc.exists:
         user_data = user_doc.to_dict()
         watchlist = user_data.get('watchlist', [])
-        return render_template('simulator.html', watchlist=watchlist)
+        
+        # Get the OptionsAccount from the session
+        options_account_data = session.get('options_account')
+        if options_account_data:
+            options_account = OptionsAccount.from_dict(options_account_data)
+            options_account.signed_in = True  # Ensure the account is considered signed in
+            portfolio_value = options_account.get_portfolio_value()
+        else:
+            portfolio_value = user_data.get('balance', 0)  # Fallback to user's balance if no OptionsAccount
+
+        return render_template('simulator.html', watchlist=watchlist, portfolio_value=portfolio_value)
     else:
         flash('User record not found', 'danger')
         return redirect(url_for('login'))
