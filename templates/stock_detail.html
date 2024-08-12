@@ -141,7 +141,9 @@
             {% for item in watchlist %}
             <li class="list-group-item watchlist-item" id="watchlist-item-{{ item }}">
               <div class="stock-info">
+                <a href="{{ url_for('stock_detail', ticker=item) }}" class="stock-link">
                 <div>{{ item }}</div>
+              </a>
                 <div class="stock-price" id="price-{{ item }}"></div>
               </div>
               <div class="chart-container">
