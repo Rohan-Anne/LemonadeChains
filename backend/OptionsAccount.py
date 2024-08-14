@@ -188,7 +188,12 @@ class OptionsAccount:
             position_value = price * position['quantity']
             total_value += position_value
         
-        
+        for key, position in self.stockpositions.items():
+            price = self.options_manager.getStockPrice(
+                position['ticker'],
+            )
+            position_value = price * position['quantity']
+            total_value += position_value
         return total_value
 
     def plot_combined_profit_loss(self, tickers_and_keys, stock_price_range=None):
