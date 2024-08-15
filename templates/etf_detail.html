@@ -85,7 +85,7 @@
     width: 100% !important;
     height: 100% !important;
   }
-  /* Central stock chart styling */
+  /* Central ETF chart styling */
   .central-chart-container {
     width: 100%;
     height: 300px;
@@ -118,18 +118,18 @@
 <main class="container my-5">
   <div class="row">
     <div class="col-lg-8">
-      <!-- Stock Detail Section -->
+      <!-- ETF Detail Section -->
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title h5 mb-0">{{ ticker }} Stock Overview</h2>
+          <h2 class="card-title h5 mb-0">{{ ticker }} ETF Overview</h2>
         </div>
         <div class="card-body">
-          <!-- Central Stock Growth Chart -->
+          <!-- Central ETF Growth Chart -->
           <div class="central-chart-container">
-            <canvas id="stockChart"></canvas>
+            <canvas id="etfChart"></canvas>
           </div>
 
-          <!-- Stock Description -->
+          <!-- ETF Description -->
           <p class="mt-4 description" id="description">{{ description }}</p>
           <span class="show-more" id="show-more" onclick="toggleDescription()">Show More</span>
 
@@ -138,8 +138,6 @@
           
           <!-- Remove from Watchlist Button -->
           <button class="btn btn-danger-custom mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
-
-          <a class="btn btn-custom mt-4" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Data</a>
 
         </div>
       </div>
@@ -156,7 +154,7 @@
             {% for item in watchlist %}
             <li class="list-group-item watchlist-item" id="watchlist-item-{{ item }}">
               <div class="stock-info">
-                <a href="{{ url_for('stock_detail', ticker=item) }}" class="stock-link">
+                <a href="{{ url_for('etf_detail', ticker=item) }}" class="stock-link">
                 <div>{{ item }}</div>
               </a>
                 <div class="stock-price" id="price-{{ item }}"></div>
@@ -181,9 +179,9 @@
       .then(response => response.json())
       .then(data => {
         document.getElementById('current-price').textContent = `$${data.price}`;
-        updateCentralStockChart(ticker, data.prices);
+        updateCentralEtfChart(ticker, data.prices);
       })
-      .catch(error => console.error('Error fetching current stock price:', error));
+      .catch(error => console.error('Error fetching current ETF price:', error));
   }
 
   // Function to update watchlist without page refresh
@@ -217,9 +215,9 @@
                 .then(response => response.json())
                 .then(stockData => {
                     document.getElementById(`price-${ticker}`).textContent = `$${stockData.price}`;
-                    updateStockChart(ticker, stockData.prices);
+                    updateEtfChart(ticker, stockData.prices);
                 })
-                .catch(error => console.error('Error fetching stock price:', error));
+                .catch(error => console.error('Error fetching ETF price:', error));
         } else {
             alert('Could not add to watchlist');
         }
@@ -227,7 +225,7 @@
     .catch(error => console.error('Error adding to watchlist:', error));
   }
 
-  // Function to remove a stock from the watchlist
+  // Function to remove an ETF from the watchlist
   function removeFromWatchlist(ticker) {
     fetch(`/remove_from_watchlist`, {
         method: 'POST',
@@ -248,7 +246,7 @@
     .catch(error => console.error('Error removing from watchlist:', error));
   }
 
-  // Update stock prices and charts dynamically in the watchlist
+  // Update ETF prices and charts dynamically in the watchlist
   function updateWatchlistPrices() {
     const tickers = {{ watchlist | tojson }};
     tickers.forEach(ticker => {
@@ -256,15 +254,15 @@
         .then(response => response.json())
         .then(data => {
           document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
-          updateStockChart(ticker, data.prices);
+          updateEtfChart(ticker, data.prices);
         })
-        .catch(error => console.error('Error fetching stock price:', error));
+        .catch(error => console.error('Error fetching ETF price:', error));
     });
   }
 
-  // Update the central stock growth chart using Chart.js
-  function updateCentralStockChart(ticker, prices) {
-    const ctx = document.getElementById('stockChart').getContext('2d');
+  // Update the central ETF growth chart using Chart.js
+  function updateCentralEtfChart(ticker, prices) {
+    const ctx = document.getElementById('etfChart').getContext('2d');
     new Chart(ctx, {
       type: 'line',
       data: {
@@ -302,8 +300,8 @@
     });
   }
 
-  // Update the stock growth chart using Chart.js for watchlist items
-  function updateStockChart(ticker, prices) {
+  // Update the ETF growth chart using Chart.js for watchlist items
+  function updateEtfChart(ticker, prices) {
     const ctx = document.getElementById(`chart-${ticker}`).getContext('2d');
     new Chart(ctx, {
       type: 'line',
@@ -356,7 +354,7 @@
     }
   }
 
-  // Initialize stock prices and charts on page load
+  // Initialize ETF prices and charts on page load
   document.addEventListener('DOMContentLoaded', function() {
     updateCurrentPrice('{{ ticker }}');
     setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);  // Update current price every 30 seconds
@@ -367,8 +365,3 @@
 </script>
 
 {% endblock %}
-
-
-
-
-

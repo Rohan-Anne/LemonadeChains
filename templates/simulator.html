@@ -316,11 +316,17 @@
                     data.forEach(ticker => {
                         let listItem = document.createElement('li');
                         listItem.classList.add('list-group-item');
-                        listItem.textContent = `${ticker.name} (${ticker.symbol})`;
+                        listItem.textContent = `${ticker.name} (${ticker.symbol}) - ${ticker.type}`;
+
+                        // Handle navigation to the correct detail page
                         listItem.onclick = function() {
-                            // Redirect to the stock detail page
-                            window.location.href = `/stock/${ticker.symbol}`;
+                            if (ticker.type === 'EQUITY') {
+                                window.location.href = `/stock/${ticker.symbol}`;
+                            } else if (ticker.type === 'ETF') {
+                                window.location.href = `/etf/${ticker.symbol}`;
+                            }
                         };
+
                         resultsContainer.appendChild(listItem);
                     });
                 } else {

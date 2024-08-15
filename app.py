@@ -302,10 +302,11 @@ def search_ticker():
 
         results = []
         for result in search_results.get('quotes', []):
-            if 'symbol' in result and 'shortname' in result and result.get('quoteType') == 'EQUITY':
+            if 'symbol' in result and 'shortname' in result and result.get('quoteType') in ['EQUITY', 'ETF']:
                 results.append({
                     'symbol': result['symbol'],
-                    'name': result['shortname']
+                    'name': result['shortname'],
+                    'type': result['quoteType']
                 })
             if len(results) >= 10:
                 break
@@ -435,6 +436,46 @@ def stock_detail(ticker):
     except Exception as e:
         flash(f"Error fetching stock data: {e}", 'danger')
         return redirect(url_for('simulator'))
+    
+@app.route('/etf/<string:ticker>')
+def etf_detail(ticker):
+    if 'user_id' not in session:
+        flash('You are not logged in', 'danger')
+        return redirect(url_for('login'))
+
+    try:
+        etf = yf.Ticker(ticker)
+        etf_info = etf.info
+        
+        if not etf_info or 'symbol' not in etf_info:
+            flash(f"No data found for ticker {ticker}", 'danger')
+            return redirect(url_for('simulator'))
+        
+        # Fetch ETF data for the chart
+        history = etf.history(period="1mo")['Close'].tolist()
+
+        # Fetch the user's watchlist
+        user_id = session['user_id']
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+
+        if user_doc.exists:
+            user_data = user_doc.to_dict()
+            watchlist = user_data.get('watchlist', [])
+        else:
+            watchlist = []
+
+        return render_template('etf_detail.html', 
+                               ticker=etf_info['symbol'], 
+                               name=etf_info['longName'] if 'longName' in etf_info else etf_info['shortName'], 
+                               description=etf_info.get('longBusinessSummary', 'No description available.'),
+                               prices=history,
+                               watchlist=watchlist)
+
+    except Exception as e:
+        flash(f"Error fetching ETF data: {e}", 'danger')
+        return redirect(url_for('simulator'))
+
 
 @app.route('/options/<ticker>')
 def options_detail(ticker):
