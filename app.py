@@ -424,8 +424,18 @@ def stock_detail(ticker):
         if user_doc.exists:
             user_data = user_doc.to_dict()
             watchlist = user_data.get('watchlist', [])
+            # Check if the user owns the stock and get the quantity
+            positions = user_data.get('positions', {})
+            if ticker in positions:
+                user_owns_stock = True
+                user_stock_quantity = positions[ticker]
+            else:
+                user_owns_stock = False
+                user_stock_quantity = 0
         else:
             watchlist = []
+            user_owns_stock = False
+            user_stock_quantity = 0
 
         return render_template('stock_detail.html', 
                                ticker=stock_info['symbol'], 
@@ -439,6 +449,7 @@ def stock_detail(ticker):
     except Exception as e:
         flash(f"Error fetching stock data: {e}", 'danger')
         return redirect(url_for('simulator'))
+
     
 @app.route('/etf/<string:ticker>')
 def etf_detail(ticker):
