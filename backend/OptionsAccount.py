@@ -14,6 +14,7 @@ class OptionsAccount:
         self.username = username
         self.password = password
         self.positions = {}
+        self.stockpositions = {}
         self.r = risk_free_rate
         self.sigma = volatility
         self.signed_in = False
@@ -24,7 +25,8 @@ class OptionsAccount:
             'balance': self.balance,
             'risk_free_rate': self.r,
             'volatility': self.sigma,
-            'positions': self.positions
+            'positions': self.positions,
+            'stockpositions': self.stockpositions
         }
 
     @classmethod
@@ -52,6 +54,59 @@ class OptionsAccount:
 
     def check_signed_in(self):
         return self.signed_in
+    
+
+    def buy_stock(self, ticker, quantity):
+        if not self.signed_in:
+            print("Please sign in before performing any transactions.")
+            return
+        
+        price = self.options_manager.getStockPrice(ticker)
+        total_cost = price *quantity
+
+        if total_cost > self.balance:
+            print("Insufficient funds to buy the options.")
+            return
+        self.balance -= total_cost
+        stock_key = ticker
+        if stock_key in self.stockpositions:
+            self.stockpositions[stock_key]['quantity'] += quantity
+            self.stockpositions[stock_key]['cost'] += total_cost
+        else:
+            self.stockpositions[stock_key] = {
+                'ticker': ticker,
+                'quantity': quantity,
+                'cost': total_cost
+            }
+        print(f"Bought {quantity} shares for {ticker} stock at price {price} each.")
+
+    def sell_stock(self, ticker, quantity):
+        if not self.signed_in:
+            print("Please sign in before performing any transactions.")
+            return
+
+        price = self.options_manager.getStockPrice(ticker)
+        total_value = price * quantity
+
+        stock_key = ticker
+        if stock_key not in self.stockpositions:
+            print(f"You don't own any shares of {ticker} stock.")
+            return
+
+        if quantity > self.stockpositions[stock_key]['quantity']:
+            print(f"You don't own enough shares of {ticker} stock to sell {quantity} shares.")
+            return
+
+        self.balance += total_value
+        self.stockpositions[stock_key]['quantity'] -= quantity
+        self.stockpositions[stock_key]['cost'] -= total_value
+
+        if self.stockpositions[stock_key]['quantity'] == 0:
+            del self.stockpositions[stock_key]
+
+        print(f"Sold {quantity} shares of {ticker} stock at price {price} each.")
+
+
 
     def buy_option(self, ticker, date, option_type, strike_price, quantity):
         if not self.signed_in:
@@ -133,7 +188,12 @@ class OptionsAccount:
             position_value = price * position['quantity']
             total_value += position_value
         
-        
+        for key, position in self.stockpositions.items():
+            price = self.options_manager.getStockPrice(
+                position['ticker'],
+            )
+            position_value = price * position['quantity']
+            total_value += position_value
         return total_value
 
     def plot_combined_profit_loss(self, tickers_and_keys, stock_price_range=None):
