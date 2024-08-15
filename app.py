@@ -389,10 +389,11 @@ def simulator():
             options_account = OptionsAccount.from_dict(options_account_data)
             options_account.signed_in = True  # Ensure the account is considered signed in
             portfolio_value = options_account.get_portfolio_value()
+            balance = options_account.balance
         else:
             portfolio_value = user_data.get('balance', 0)  # Fallback to user's balance if no OptionsAccount
 
-        return render_template('simulator.html', watchlist=watchlist, portfolio_value=portfolio_value)
+        return render_template('simulator.html', watchlist=watchlist, portfolio_value=portfolio_value, balance = balance)
     else:
         flash('User record not found', 'danger')
         return redirect(url_for('login'))
@@ -414,7 +415,7 @@ def stock_detail(ticker):
         # Fetch stock data for the chart
         history = stock.history(period="1mo")['Close'].tolist()
 
-        # Fetch the user's watchlist
+        # Fetch the user's watchlist and stock positions
         user_id = session['user_id']
         user_ref = db.collection('users').document(user_id)
         user_doc = user_ref.get()
@@ -430,11 +431,15 @@ def stock_detail(ticker):
                                name=stock_info['longName'] if 'longName' in stock_info else stock_info['shortName'], 
                                description=stock_info.get('longBusinessSummary', 'No description available.'),
                                prices=history,
-                               watchlist=watchlist)
+                               watchlist=watchlist,
+                               user_owns_stock=user_owns_stock,
+                               user_stock_quantity=user_stock_quantity)
 
     except Exception as e:
         flash(f"Error fetching stock data: {e}", 'danger')
         return redirect(url_for('simulator'))
+
+
 
 @app.route('/options/<ticker>')
 def options_detail(ticker):
