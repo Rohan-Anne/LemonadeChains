@@ -51,7 +51,7 @@ class OptionsManager:
     def calculateOptionPrice(self, ticker, strike_price, expiration_date, option_type, r, sigma):
         S = self.getStockPrice(ticker)
         K = strike_price
-        T = (pd.to_datetime(expiration_date) - pd.Timestamp.now()).days / 365.0
+        T = (pd.to_datetime(expiration_date).replace(tzinfo=None) - pd.Timestamp.now().replace(tzinfo=None)).days / 365.0
         price = self.black_scholes(S, K, T, r, sigma, option_type)
         return price
 

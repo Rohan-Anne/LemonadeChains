@@ -12,6 +12,8 @@ import time
 from backend.OptionsManager import OptionsManager
 import pandas as pd
 import numpy as np
+from datetime import datetime
+import re
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -129,6 +131,7 @@ def callback():
         session['email'] = email
         session['name'] = id_info.get('name')
         session['options_account'] = options_account.to_dict()  # Ensure it's a dictionary in the session
+        session['balance'] = options_account_data['balance']
         
         return redirect(url_for('homepage'))
 
@@ -158,6 +161,7 @@ def signin():
                 options_account_data = user_dict
                 options_account = OptionsAccount.from_dict(options_account_data)
                 session['options_account'] = options_account.to_dict()
+                session['balance'] = options_account_data['balance']
 
                 flash(f'User {email} signed in successfully', 'success')
                 return redirect(url_for('homepage'))
@@ -391,8 +395,10 @@ def simulator():
             options_account.signed_in = True  # Ensure the account is considered signed in
             portfolio_value = options_account.get_portfolio_value()
             balance = options_account.balance
+            session['balance'] = balance  # Store balance in session
         else:
             portfolio_value = user_data.get('balance', 0)  # Fallback to user's balance if no OptionsAccount
+            session['balance'] = portfolio_value  # Store balance in session
 
         return render_template('simulator.html', watchlist=watchlist, portfolio_value=portfolio_value, balance = balance)
     else:
@@ -558,6 +564,64 @@ def get_options_data():
         print(f"Error fetching options data: {e}")
         return jsonify({'error': 'Failed to fetch options data'}), 500
 
+@app.route('/get_option_profit_data', methods=['POST'])
+def get_option_profit_data():
+    data = request.json
+    ticker = data.get('ticker')
+    strike = float(data.get('strike'))
+    expiration_date = data.get('expiration')
+    option_type = data.get('type').lower() if data.get('type') else None
+
+    # Log the received data explicitly
+    print(f"Received data - Ticker: {ticker}, Strike: {strike}, Expiration: {expiration_date}, Type: {option_type}")
+
+    if option_type not in ['call', 'put']:
+        print(f"Invalid option type received: {option_type}. Use 'call' or 'put'.")
+        return jsonify({'error': f'Invalid option type. Use "call" or "put". Received: {option_type}'}), 400
+
+    # Convert the expiration date
+    expiration_date = datetime.strptime(expiration_date, "%m/%d/%Y, %I:%M:%S %p")
+    print(f"Expiration date converted to datetime: {expiration_date}")
+
+    # Retrieve the options account from the session
+    options_account_data = session.get('options_account')
+    if not options_account_data:
+        print("No options account found in session.")
+        return jsonify({'error': 'No options account found in session.'}), 400
+
+    options_account = OptionsAccount.from_dict(options_account_data)
+    options_account.signed_in = True
+    print(f"Option account retrieved: {options_account.to_dict()}")
+
+    underlying_ticker = ''.join(filter(str.isalpha, ticker)).rstrip('C').rstrip('P')
+    print(f"Underlying stock ticker extracted: {underlying_ticker}")
+
+    try:
+        S = options_account.options_manager.getStockPrice(underlying_ticker)
+        K = strike
+        T = (expiration_date - pd.Timestamp.now()).days / 365.0
+        stock_price_range = np.linspace(0.5 * S, 1.5 * S, 100)
+        profits = []
+
+        premium_paid = options_account.options_manager.calculateOptionPrice(
+            underlying_ticker, K, expiration_date, option_type, options_account.r, options_account.sigma
+        )
+
+        for stock_price in stock_price_range:
+            if option_type == 'call':
+                intrinsic_value = max(stock_price - K, 0)
+            else:
+                intrinsic_value = max(K - stock_price, 0)
+            profit = (intrinsic_value - premium_paid)
+            profits.append(profit)
+
+        print("Profit/Loss data generated successfully.")
+        return jsonify({'stock_price_range': stock_price_range.tolist(), 'profits': profits})
+
+    except Exception as e:
+        print(f"Error generating profit/loss data: {e}")
+        return jsonify({'error': f'Error generating profit/loss data: {e}'}), 500
+
 
 @app.route('/lemonadelearn')
 def lemonade_learn():
@@ -593,6 +657,70 @@ def logout():
 
 
 
+@app.route('/trade_option', methods=['POST'])
+def trade_option():
+    data = request.json
+    full_ticker = data.get('ticker')  # This is the full option contract ticker
+    strike = float(data.get('strike'))
+    expiration_date = datetime.strptime(data.get('expiration'), "%m/%d/%Y, %I:%M:%S %p")
+    option_type = data.get('type').lower()
+    quantity = int(data.get('quantity'))
+    action = data.get('action').lower()
+
+    print(f"Processing trade: {action} {quantity} {option_type} options for {full_ticker} at strike {strike} expiring on {expiration_date}")
+
+    # Improved extraction of underlying ticker using regex
+    match = re.match(r"([A-Z]+)(\d+)(C|P)(\d+)", full_ticker)
+    if match:
+        underlying_ticker = match.group(1)
+    else:
+        print("Could not parse the option ticker symbol")
+        return jsonify({'error': 'Invalid option ticker symbol'}), 400
+
+    print(f"Extracted underlying ticker: {underlying_ticker}")
+
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 400
+
+    options_account_data = session.get('options_account')
+    if not options_account_data:
+        print("No options account found in session.")
+        return jsonify({'error': 'No options account found in session.'}), 400
+
+    options_account = OptionsAccount.from_dict(options_account_data)
+    options_account.signed_in = True
+
+    try:
+        if action == 'buy':
+            success, message = options_account.buy_option(underlying_ticker, expiration_date, option_type, strike, quantity)
+        elif action == 'sell':
+            option_key = f"{option_type}_{strike}"
+            success, message = options_account.sell_option(underlying_ticker, expiration_date, option_type, strike, quantity)
+        else:
+            return jsonify({'error': 'Invalid action'}), 400
+
+        if not success:
+            print(f"Trade error: {message}")
+            return jsonify({'error': message}), 400
+
+        # Update the session and Firestore with the modified options account
+        session['options_account'] = options_account.to_dict()
+        session['balance'] = options_account.balance  # Update balance in session
+
+        user_ref = db.collection('users').document(session['user_id'])
+        user_ref.update({
+            'balance': options_account.balance,
+            'positions': options_account.positions,
+            'stockpositions': options_account.stockpositions
+        })
+
+        print(f"Trade successful: {action} {quantity} {option_type} options for {underlying_ticker}")
+        return jsonify({'success': True, 'balance': options_account.balance})
+
+    except Exception as e:
+        print(f"Error processing trade: {e}")
+        return jsonify({'error': 'Failed to process trade'}), 500
+
 
 @app.route('/users')
 def users():
@@ -609,10 +737,6 @@ def users():
 
 if __name__ == '__main__':
     app.run(debug=True, ssl_context='adhoc')
-
-
-
-
 
 
 

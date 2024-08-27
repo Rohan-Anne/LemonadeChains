@@ -5,6 +5,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import io
+import base64
+
+
 
 class OptionsAccount:
 
@@ -111,17 +115,24 @@ class OptionsAccount:
     def buy_option(self, ticker, date, option_type, strike_price, quantity):
         if not self.signed_in:
             print("Please sign in before performing any transactions.")
-            return
+            return False, "User not signed in"
         if option_type not in ['call', 'put']:
             print("Invalid option type. Use 'call' or 'put'.")
-            return
+            return False, "Invalid option type"
+        
+        if date.tzinfo is not None:
+            date = date.replace(tzinfo=None)
 
         price = self.options_manager.calculateOptionPrice(ticker, strike_price, date, option_type, self.r, self.sigma)
+        if price is None:
+            print("Failed to calculate option price.")
+            return False, "Failed to calculate option price"
+        
         total_cost = price * quantity
 
         if total_cost > self.balance:
             print("Insufficient funds to buy the options.")
-            return
+            return False, "Insufficient funds"
 
         self.balance -= total_cost
         option_key = f"{option_type}_{strike_price}"
@@ -139,26 +150,49 @@ class OptionsAccount:
             }
 
         print(f"Bought {quantity} {option_type} options with strike price {strike_price} for {ticker} at price {price} each.")
+        return True, "Option purchase successful"
 
-    def sell_option(self, option_key, quantity):
-        if not self.signed_in:
-            print("Please sign in before performing any transactions.")
-            return
-        if option_key not in self.positions:
-            print("Option position not found.")
-            return
-        option_position = self.positions[option_key]
-        
-        price = self.options_manager.calculateOptionPrice(option_position['ticker'], option_position['strike_price'], option_position['expiration_date'], option_position['option_type'], self.r, self.sigma)
-        total_income = price * quantity
-        self.balance += total_income
-        option_position['quantity'] -= quantity
+    def sell_option(self, ticker, date, option_type, strike_price, quantity):
+     
+     if not self.signed_in:
+         print("Please sign in before performing any transactions.")
+         return False, "User not signed in"
+     
+     if option_type not in ['call', 'put']:
+         print("Invalid option type. Use 'call' or 'put'.")
+         return False, "Invalid option type"
+     
+     if date.tzinfo is not None:
+            date = date.replace(tzinfo=None)
 
-        if option_position['quantity'] == 0:
-            del self.positions[option_key]
+     # Ensure that the expiration date is correctly passed
+     if date < datetime.now():
+         print(f"Option expired on {date}, cannot sell.")
+         raise ValueError("Option expired, cannot sell.")
 
-        print(f"Sold {quantity} {option_position['option_type']} options with strike price {option_position['strike_price']} for {option_position['ticker']} at price {price} each.")
+     option_key = f"{option_type}_{strike_price}"
+     if option_key not in self.positions:
+         print("Option position not found.")
+         return False, "Failed to find option position"
+     
+     option_position = self.positions[option_key]
 
+     price = self.options_manager.calculateOptionPrice(ticker, strike_price, date, option_type, self.r, self.sigma)
+     if price is None:
+            print("Failed to calculate option price.")
+            return False, "Failed to calculate option price"
+            
+     total_income = price * quantity
+     self.balance += total_income
+     option_position['quantity'] -= quantity
+
+     if option_position['quantity'] == 0:
+         del self.positions[option_key]
+
+     print(f"Sold {quantity} {option_position['option_type']} options with strike price {option_position['strike_price']} for {option_position['ticker']} at price {price} each.")
+     return True, "Option purchase successful"
+
+    
     def display_balance(self):
         print(f"Current Account Balance: ${self.balance}")
 
@@ -196,6 +230,90 @@ class OptionsAccount:
             total_value += position_value
         return total_value
 
+    def plot_single_profit_loss(self, ticker, expiration_date, option_type, strike_price):
+        if not self.signed_in:
+            raise ValueError("Please sign in before performing any transactions.")
+    
+        if option_type not in ['call', 'put']:
+            print(f"Invalid option type in plot_single_profit_loss: {option_type}")
+            raise ValueError("Invalid option type. Use 'call' or 'put'.")
+
+        print(f"Generating profit/loss for {ticker}, {option_type}, strike price {strike_price}, expiration {expiration_date}")
+
+        S = self.options_manager.getStockPrice(ticker)
+        if S is None:
+            raise ValueError(f"No stock price found for {ticker}")
+
+        K = strike_price
+        T = (expiration_date - pd.Timestamp.now()).days / 365.0
+        stock_price_range = np.linspace(0.5 * S, 1.5 * S, 100)
+
+        profits = []
+        premium_paid = self.options_manager.calculateOptionPrice(ticker, K, expiration_date, option_type, self.r, self.sigma)
+
+        for stock_price in stock_price_range:
+            if option_type == 'call':
+                intrinsic_value = max(stock_price - K, 0)
+            else:
+                intrinsic_value = max(K - stock_price, 0)
+            profit = (intrinsic_value - premium_paid)
+            profits.append(profit)
+
+        fig = go.Figure()
+
+        # Add the profit/loss line
+        fig.add_trace(go.Scatter(x=stock_price_range, y=profits, mode='lines', name=f'{option_type.capitalize()} P/L'))
+
+        # Add zero line
+        fig.add_trace(go.Scatter(x=stock_price_range, y=[0]*len(stock_price_range), mode='lines', line=dict(color='black', dash='dash'), showlegend=False))
+
+        # Update layout for better appearance
+        fig.update_layout(
+        title=f'Profit/Loss vs Stock Price for {ticker} {option_type.capitalize()} Option',
+        xaxis_title='Stock Price at Expiration',
+        yaxis_title='Profit/Loss',
+        legend_title='Legend',
+        template='plotly_white',
+        xaxis=dict(
+            showline=True,
+            showgrid=True,
+            showticklabels=True,
+            linecolor='rgb(204, 204, 204)',
+            linewidth=2,
+            ticks='outside',
+            tickfont=dict(
+                family='Arial',
+                size=12,
+                color='rgb(82, 82, 82)',
+            ),
+        ),
+        yaxis=dict(
+            showline=True,
+            showgrid=True,
+            showticklabels=True,
+            linecolor='rgb(204, 204, 204)',
+            linewidth=2,
+            ticks='outside',
+            tickfont=dict(
+                family='Arial',
+                size=12,
+                color='rgb(82, 82, 82)',
+            ),
+        ),
+        plot_bgcolor='white'
+        )
+
+        # Save figure to a bytes buffer and encode it as a base64 string
+        buf = io.BytesIO()
+        fig.write_image(buf, format='png')
+        buf.seek(0)
+        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+
+        # Return the base64 image string
+        return img_base64
+
+
+
     def plot_combined_profit_loss(self, tickers_and_keys, stock_price_range=None):
         if not self.signed_in:
             print("Please sign in before performing any transactions.")
@@ -215,7 +333,7 @@ class OptionsAccount:
             option_type = position['option_type']
     
             if stock_price_range is None:
-                stock_price_range = np.linspace(0, 2 * S, 100)
+                stock_price_range = np.linspace(-2 * S, 2 * S, 100)
 
             profits = []
             premium_paid = position['premium'] / position['quantity']
