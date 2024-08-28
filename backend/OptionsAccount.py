@@ -43,6 +43,7 @@ class OptionsAccount:
             volatility=data.get('volatility', 0.2)
         )
         account.positions = data.get('positions', {})
+        account.stockpositions = data.get('stockpositions', {})
         return account
 
     def sign_in(self, entered_password):
@@ -63,14 +64,15 @@ class OptionsAccount:
     def buy_stock(self, ticker, quantity):
         if not self.signed_in:
             print("Please sign in before performing any transactions.")
-            return
+            return False, "User not signed in"
         
         price = self.options_manager.getStockPrice(ticker)
-        total_cost = price *quantity
+        total_cost = price * quantity
 
         if total_cost > self.balance:
-            print("Insufficient funds to buy the options.")
-            return
+            print("Insufficient funds to buy the stock.")
+            return False, "Insufficient funds"
+
         self.balance -= total_cost
         stock_key = ticker
         if stock_key in self.stockpositions:
@@ -82,24 +84,28 @@ class OptionsAccount:
                 'quantity': quantity,
                 'cost': total_cost
             }
-        print(f"Bought {quantity} shares for {ticker} stock at price {price} each.")
+        print(f"Bought {quantity} shares of {ticker} stock at price {price} each. New position: {self.stockpositions[stock_key]}")
+        return True, "Stock purchased successfully"
+
 
     def sell_stock(self, ticker, quantity):
         if not self.signed_in:
             print("Please sign in before performing any transactions.")
-            return
+            return False, "User not signed in"
 
         price = self.options_manager.getStockPrice(ticker)
         total_value = price * quantity
 
         stock_key = ticker
+        print(f"Attempting to sell {quantity} shares of {ticker}. Current positions: {self.stockpositions}")
+
         if stock_key not in self.stockpositions:
             print(f"You don't own any shares of {ticker} stock.")
-            return
+            return False, f"You don't own any shares of {ticker} stock."
 
         if quantity > self.stockpositions[stock_key]['quantity']:
             print(f"You don't own enough shares of {ticker} stock to sell {quantity} shares.")
-            return
+            return False, f"You don't own enough shares of {ticker} stock to sell {quantity} shares."
 
         self.balance += total_value
         self.stockpositions[stock_key]['quantity'] -= quantity
@@ -108,9 +114,8 @@ class OptionsAccount:
         if self.stockpositions[stock_key]['quantity'] == 0:
             del self.stockpositions[stock_key]
 
-        print(f"Sold {quantity} shares of {ticker} stock at price {price} each.")
-
-
+        print(f"Sold {quantity} shares of {ticker} stock at price {price} each. New position: {self.stockpositions.get(stock_key, 'None')}")
+        return True, "Stock sold successfully"
 
     def buy_option(self, ticker, date, option_type, strike_price, quantity):
         if not self.signed_in:

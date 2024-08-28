@@ -720,6 +720,77 @@ def trade_option():
     except Exception as e:
         print(f"Error processing trade: {e}")
         return jsonify({'error': 'Failed to process trade'}), 500
+    
+
+@app.route('/buy_stock', methods=['POST'])
+def buy_stock():
+    data = request.json
+    ticker = data.get('ticker')
+    quantity = int(data.get('quantity'))
+
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'User not logged in'}), 400
+
+    options_account_data = session.get('options_account')
+    if not options_account_data:
+        return jsonify({'success': False, 'error': 'No options account found in session.'}), 400
+
+    options_account = OptionsAccount.from_dict(options_account_data)
+    options_account.signed_in = True
+
+    success, message = options_account.buy_stock(ticker, quantity)
+
+    if not success:
+        return jsonify({'success': False, 'error': message}), 400
+
+    # Update the session and Firestore with the modified options account
+    session['options_account'] = options_account.to_dict()
+    session['balance'] = options_account.balance
+
+    user_ref = db.collection('users').document(session['user_id'])
+    user_ref.update({
+        'balance': options_account.balance,
+        'stockpositions': options_account.stockpositions,
+        'positions': options_account.positions
+    })
+
+    return jsonify({'success': True, 'balance': options_account.balance})
+
+@app.route('/sell_stock', methods=['POST'])
+def sell_stock():
+    data = request.json
+    ticker = data.get('ticker')
+    quantity = int(data.get('quantity'))
+
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'User not logged in'}), 400
+
+    options_account_data = session.get('options_account')
+    if not options_account_data:
+        return jsonify({'success': False, 'error': 'No options account found in session.'}), 400
+
+    options_account = OptionsAccount.from_dict(options_account_data)
+    print(f"Data gotten right from session: {options_account.stockpositions}")
+    options_account.signed_in = True
+
+    success, message = options_account.sell_stock(ticker, quantity)
+
+    if not success:
+        return jsonify({'success': False, 'error': message}), 400
+
+    # Update the session and Firestore with the modified options account
+    session['options_account'] = options_account.to_dict()
+    session['balance'] = options_account.balance
+
+    user_ref = db.collection('users').document(session['user_id'])
+    user_ref.update({
+        'balance': options_account.balance,
+        'stockpositions': options_account.stockpositions,
+        'positions': options_account.positions
+    })
+
+    return jsonify({'success': True, 'balance': options_account.balance})
+
 
 
 @app.route('/users')
