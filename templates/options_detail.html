@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Options Detail</title>
-    <!-- Include Plotly.js CDN -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
@@ -13,48 +12,15 @@
 
     {% block content %}
     <style>
-      .table-container {
-        margin-top: 20px;
-      }
-      .filter-container {
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-      }
-      .filter-group {
-        margin-bottom: 10px;
-      }
-      .graph-and-trade-container {
-        display: flex;
-        margin-top: 10px;
-      }
-      .graph-container {
-        flex: 2;
-        margin-right: 10px;
-      }
-      .trade-form-container {
-        flex: 1;
-        border: 1px solid #ddd;
-        padding: 10px;
-        background-color: #f9f9f9;
-      }
-
-      .graph-container {
-        flex: 2;
-        margin-right: 10px;
-        height: 600px;  /* Adjust this value as needed */
-        display: none;
-      }
-
-      .trade-form-container {
-        display: none;
-      }
+      .table-container { margin-top: 20px; }
+      .filter-container { margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
+      .filter-group { margin-bottom: 10px; }
+      .graph-and-trade-container { display: flex; margin-top: 10px; justify-content: center; }
+      .graph-container { flex: 2; margin-right: 10px; height: 600px; width: 80%; display: none; text-align: center; }
     </style>
 
     <div class="container">
       <h1 class="mt-4">{{ ticker }} Options</h1>
-
       <!-- Filter Section -->
       <div class="filter-container">
         <div class="filter-group">
@@ -100,7 +66,7 @@
               <th>Volume</th>
               <th>Open Interest</th>
               <th>Implied Volatility</th>
-              <th>Graph</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="calls-table-body">
@@ -126,7 +92,7 @@
               <th>Volume</th>
               <th>Open Interest</th>
               <th>Implied Volatility</th>
-              <th>Graph</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="puts-table-body">
@@ -138,15 +104,11 @@
 
     <script>
       document.getElementById('apply-filters').addEventListener('click', function() {
-        console.log('Apply Filters clicked');
-
         const ticker = '{{ ticker }}';
         const expirationDate = document.getElementById('expiration-date').value;
         const strikeMin = document.getElementById('strike-min').value;
         const strikeMax = document.getElementById('strike-max').value;
         const optionType = document.getElementById('option-type').value;
-
-        console.log(`Filters applied - Ticker: ${ticker}, Expiration Date: ${expirationDate}, Strike Min: ${strikeMin}, Strike Max: ${strikeMax}, Option Type: ${optionType}`);
 
         const filters = {
             ticker: ticker,
@@ -164,7 +126,6 @@
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Received options data:', data);
             if (data.error) {
                 console.error('Error fetching options data:', data.error);
             } else {
@@ -182,7 +143,7 @@
         data.forEach(option => {
             const expiration = new Date(expirationDate).toLocaleDateString('en-US') + ', 11:59:59 PM';
             const graphId = `${option.contractSymbol}-${option.strike}-${expiration}-${optionType}-graph`;
-            const row = document.createElement('tr');  // Define the row variable here
+            const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${option.contractSymbol}</td>
                 <td>${new Date(option.lastTradeDate).toLocaleString()}</td>
@@ -195,172 +156,118 @@
                 <td>${option.volume}</td>
                 <td>${option.openInterest}</td>
                 <td>${option.impliedVolatility}%</td>
-                <td><button class="btn btn-secondary" onclick="toggleProfitGraph('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', '${graphId}')">Toggle Graph</button></td>
+                <td>
+                  <button class="btn btn-success" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'buy')">Buy in Cart</button>
+                  <button class="btn btn-danger" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'sell')">Sell in Cart</button>
+                  <button class="btn btn-secondary" onclick="toggleProfitGraph('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', '${graphId}')">Toggle Graph</button>
+                </td>
             `;
             tableBody.appendChild(row);
 
-            // Add a combined graph and trade form container
-            const graphAndTradeRow = document.createElement('tr');
-            graphAndTradeRow.innerHTML = `
+            // Add a graph container only
+            const graphRow = document.createElement('tr');
+            graphRow.innerHTML = `
                 <td colspan="12">
                     <div class="graph-and-trade-container">
                         <div id="${graphId}" class="graph-container"></div>
-                        <div id="trade-form-${graphId}" class="trade-form-container">
-                            <form onsubmit="tradeOption('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', event)">
-                                <div class="form-group">
-                                    <label for="quantity-${graphId}">Quantity:</label>
-                                    <input type="number" id="quantity-${graphId}" class="form-control" placeholder="Enter quantity" required>
-                                </div>
-                                <button type="submit" class="btn btn-success">Buy</button>
-                                <button type="button" class="btn btn-danger" onclick="sellOption('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', event)">Sell</button>
-                            </form>
-                        </div>
                     </div>
                 </td>
             `;
-            tableBody.appendChild(graphAndTradeRow);
+            tableBody.appendChild(graphRow);
         });
       }
 
       function toggleProfitGraph(ticker, strike, type, expiration, graphId) {
-    console.log(`Toggle graph for Contract: ${ticker}, Strike: ${strike}, Expiration: ${expiration}, Type: ${type}`);
+        const graphRow = document.getElementById(graphId);
 
-    const graphRow = document.getElementById(graphId);
-    const tradeForm = document.getElementById(`trade-form-${graphId}`);
-
-    if (!graphRow || !tradeForm) {
-        console.error(`Element with ID ${graphId} or trade form not found.`);
-        return;
-    }
-
-    const payload = {
-        ticker: ticker,
-        strike: strike,
-        expiration: expiration,
-        type: type
-    };
-    console.log('Payload to be sent:', payload);
-
-    fetch('/get_option_profit_data', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            console.error(`Error generating graph: ${data.error}`);
-        } else {
-            console.log('Graph data fetched successfully:', data);  // Log the full data object
-            const stockPriceRange = data.stock_price_range;
-            const profits = data.profits;
-
-            if (stockPriceRange && profits && stockPriceRange.length > 0 && profits.length > 0) {
-                const graphData = [
-                    {
-                        x: stockPriceRange,
-                        y: profits,
-                        type: 'scatter',
-                        mode: 'lines',
-                        name: 'Profit/Loss'
-                    }
-                ];
-
-                const layout = {
-                    title: 'Profit/Loss Graph',
-                    xaxis: { title: 'Stock Price' },
-                    yaxis: { title: 'Profit/Loss' }
-                };
-
-                Plotly.newPlot(graphId, graphData, layout);
-                graphRow.style.display = 'block';  // Show the graph
-                tradeForm.style.display = 'block';  // Show the trade form
-            } else {
-                console.warn('Received empty or invalid graph data.');
-            }
+        if (!graphRow) {
+            console.error(`Element with ID ${graphId} not found.`);
+            return;
         }
-    })
-    .catch(error => console.error('Error fetching graph data:', error));
-}
 
+        if (graphRow.style.display === 'block') {
+            graphRow.style.display = 'none'; // Hide the graph if already displayed
+        } else {
+            const payload = {
+                ticker: ticker,
+                strike: strike,
+                expiration: expiration,
+                type: type
+            };
 
-      function tradeOption(ticker, strike, type, expiration, event) {
-        event.preventDefault();
-        const graphId = `${ticker}-${strike}-${expiration}-${type}-graph`;
-        const quantity = document.getElementById(`quantity-${graphId}`).value;
+            fetch('/get_option_profit_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error(`Error generating graph: ${data.error}`);
+                } else {
+                    const stockPriceRange = data.stock_price_range;
+                    const profits = data.profits;
 
-        const payload = {
-            ticker: ticker,
-            strike: strike,
-            expiration: expiration,
-            type: type,
-            quantity: quantity,
-            action: 'buy'
-        };
+                    if (stockPriceRange && profits && stockPriceRange.length > 0 && profits.length > 0) {
+                        const graphData = [
+                            {
+                                x: stockPriceRange,
+                                y: profits,
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Profit/Loss'
+                            }
+                        ];
 
-        fetch('/trade_option', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error(`Error trading option: ${data.error}`);
-            } else {
-                console.log(`Trade successful: ${data.message}`);
-                alert(`Trade successful: ${data.message}`);
-            }
-        })
-        .catch(error => console.error('Error trading option:', error));
+                        const layout = {
+                            title: 'Profit/Loss Graph',
+                            xaxis: { title: 'Stock Price' },
+                            yaxis: { title: 'Profit/Loss' }
+                        };
+
+                        Plotly.newPlot(graphId, graphData, layout);
+                        graphRow.style.display = 'block';  // Show the graph
+                    } else {
+                        console.warn('Received empty or invalid graph data.');
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching graph data:', error));
+        }
       }
 
-      function sellOption(ticker, strike, type, expiration, event) {
-        event.preventDefault();
-        const graphId = `${ticker}-${strike}-${expiration}-${type}-graph`;
-        const quantity = document.getElementById(`quantity-${graphId}`).value;
-
-        const payload = {
-            ticker: ticker,
+      function addToCart(contract, strike, type, expiration, action) {
+        const cartItem = {
+            type: 'option',
+            contract: contract,
             strike: strike,
             expiration: expiration,
-            type: type,
-            quantity: quantity,
-            action: 'sell'
+            action: action
         };
-
-        fetch('/trade_option', {
+        fetch('/add_to_cart', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cartItem)
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                console.error(`Error trading option: ${data.error}`);
+            if (data.success) {
+                alert('Item added to cart');
             } else {
-                console.log(`Trade successful: ${data.message}`);
-                alert(`Trade successful: ${data.message}`);
+                alert('Error adding to cart');
             }
         })
-        .catch(error => console.error('Error trading option:', error));
+        .catch(error => console.error('Error:', error));
       }
 
       // Automatically apply filters on page load to show initial data
       document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('apply-filters').click();
       });
-
     </script>
     {% endblock %}
-    
 </body>
 </html>
-
 

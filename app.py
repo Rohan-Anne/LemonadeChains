@@ -656,7 +656,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-
+"""
 @app.route('/trade_option', methods=['POST'])
 def trade_option():
     data = request.json
@@ -790,6 +790,92 @@ def sell_stock():
     })
 
     return jsonify({'success': True, 'balance': options_account.balance})
+"""
+
+@app.route('/add_to_cart', methods=['POST'])
+def add_to_cart():
+    data = request.json
+    cart = session.get('cart', [])
+    cart.append(data)
+    session['cart'] = cart
+    return jsonify({'success': True})
+
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    data = request.json
+    cart = session.get('cart', [])
+    session['cart'] = [item for item in cart if item['contract'] != data['contract'] or item['action'] != data['action']]
+    return jsonify({'success': True})
+
+@app.route('/cart')
+def view_cart():
+    cart = session.get('cart', [])
+    return render_template('cart.html', cart=cart)
+
+@app.route('/confirm_trades', methods=['POST'])
+def confirm_trades():
+    cart = session.get('cart', [])
+    options_account_data = session.get('options_account')
+    if not options_account_data:
+        return jsonify({'success': False, 'error': 'No options account found in session.'})
+
+    options_account = OptionsAccount.from_dict(options_account_data)
+    options_account.signed_in = True
+
+    for item in cart:
+        if item['type'] == 'option':
+            # Process options trades
+            expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
+            option_type = 'call' if 'C' in item['contract'] else 'put'
+            quantity = int(item.get('quantity', 1))  # Default to 1 if quantity is not provided
+            strike_price = float(item['strike'])
+            ticker = item['contract'][:-15]  # Extract underlying stock symbol (first part of the contract)
+
+            # Determine if buying or selling
+            if item['action'] == 'buy':
+                success, message = options_account.buy_option(ticker, expiration_date, option_type, strike_price, quantity)
+            elif item['action'] == 'sell':
+                success, message = options_account.sell_option(ticker, expiration_date, option_type, strike_price, quantity)
+            else:
+                success, message = False, "Invalid action for option"
+
+        elif item['type'] == 'stock':
+            # Handle stock trades
+            quantity = int(item.get('quantity', 1))  # Default to 1 if quantity is not provided
+            if item['action'] == 'buy':
+                success, message = options_account.buy_stock(item['contract'], quantity)
+            elif item['action'] == 'sell':
+                success, message = options_account.sell_stock(item['contract'], quantity)
+            else:
+                success, message = False, "Invalid action for stock"
+
+        else:
+            success, message = False, "Invalid item type in cart"
+        
+        if not success:
+            print(f"Error processing trade: {message}")
+            return jsonify({'success': False, 'error': message})
+
+    # Save updates
+    session['options_account'] = options_account.to_dict()
+
+    # Update Firebase with the new state of OptionsAccount
+    user_id = session['user_id']
+    user_ref = db.collection('users').document(user_id)
+    try:
+        user_ref.update({
+            'balance': options_account.balance,
+            'positions': options_account.positions,
+            'stockpositions': options_account.stockpositions
+        })
+        print("Firebase updated successfully.")
+    except Exception as e:
+        print(f"Error updating Firebase: {e}")
+        return jsonify({'success': False, 'error': 'Failed to update Firebase.'})
+
+    session.pop('cart', None)  # Clear the cart after confirming trades
+    return jsonify({'success': True})
+
 
 
 

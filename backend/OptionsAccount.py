@@ -67,6 +67,13 @@ class OptionsAccount:
             return False, "User not signed in"
         
         price = self.options_manager.getStockPrice(ticker)
+        # Ensure price is a float
+        try:
+            price = float(price)
+        except (TypeError, ValueError):
+            print(f"Invalid price type for {ticker}. Price must be a float. Received: {price}")
+            return False, "Invalid price type"
+
         total_cost = price * quantity
 
         if total_cost > self.balance:
@@ -87,13 +94,18 @@ class OptionsAccount:
         print(f"Bought {quantity} shares of {ticker} stock at price {price} each. New position: {self.stockpositions[stock_key]}")
         return True, "Stock purchased successfully"
 
-
     def sell_stock(self, ticker, quantity):
         if not self.signed_in:
             print("Please sign in before performing any transactions.")
             return False, "User not signed in"
 
-        price = self.options_manager.getStockPrice(ticker)
+        # Fetch stock price
+        try:
+            price = float(self.options_manager.getStockPrice(ticker))
+        except (TypeError, ValueError) as e:
+            print(f"Error fetching price for {ticker}: {e}")
+            return False, f"Error fetching price for {ticker}"
+
         total_value = price * quantity
 
         stock_key = ticker
@@ -116,6 +128,8 @@ class OptionsAccount:
 
         print(f"Sold {quantity} shares of {ticker} stock at price {price} each. New position: {self.stockpositions.get(stock_key, 'None')}")
         return True, "Stock sold successfully"
+
+
 
     def buy_option(self, ticker, date, option_type, strike_price, quantity):
         if not self.signed_in:

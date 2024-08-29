@@ -4,120 +4,20 @@
 
 {% block content %}
 <style>
-  /* General page styling */
-  .navbar-custom {
-    background-color: #f8f9fa;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  .hero-section {
-    background: linear-gradient(135deg, #3498db, #8e44ad);
-    color: white;
-    padding: 50px 0;
-    text-align: center;
-  }
-  .card {
-    box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1);
-    margin-bottom: 20px;
-  }
-  .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-  }
-  .btn-custom {
-    background-color: #3498db;
-    border-color: #3498db;
-    color: white;
-  }
-  .btn-custom:hover {
-    background-color: #8e44ad;
-    border-color: #8e44ad;
-    color: white;
-  }
-  .btn-danger-custom {
-    background-color: #e74c3c;
-    border-color: #e74c3c;
-    color: white;
-  }
-  .btn-danger-custom:hover {
-    background-color: #c0392b;
-    border-color: #c0392b;
-    color: white;
-  }
-  .watchlist-container {
-    background-color: #f8f9fa;
-    padding: 10px;
-    border-radius: 8px;
-    height: 100%;
-  }
-  .watchlist-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #3498db;
-  }
-  .watchlist-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    margin-bottom: 8px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  .watchlist-item:hover {
-    background-color: #f8f9fa;
-  }
-  .stock-info {
-    display: flex;
-    flex-direction: column;
-    margin-right: 20px;
-  }
-  .stock-price {
-    font-size: 1.2rem;
-    color: #8e44ad;
-  }
-  .chart-container {
-    width: 100px;
-    height: 50px;
-    position: relative;
-  }
-  .chart-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-  /* Central stock chart styling */
-  .central-chart-container {
-    width: 100%;
-    height: 300px;
-    margin-top: 20px;
-  }
-  /* Description toggling styling */
-  .description {
-    overflow: hidden;
-    max-height: 200px; /* initial height before showing more */
-    transition: max-height 0.3s ease;
-  }
-  .description.expanded {
-    max-height: 1000px; /* or some large value to show the entire text */
-  }
-  .show-more {
-    cursor: pointer;
-    color: #3498db;
-    font-weight: 600;
-  }
-  /* Styles for buy/sell forms */
-  .trade-forms {
-    margin-top: 20px;
-  }
-  .trade-form {
-    margin-bottom: 20px;
-  }
+  .navbar-custom { background-color: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .hero-section { background: linear-gradient(135deg, #3498db, #8e44ad); color: white; padding: 50px 0; text-align: center; }
+  .card { box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1); margin-bottom: 20px; }
+  .btn-custom { background-color: #3498db; border-color: #3498db; color: white; }
+  .btn-custom:hover { background-color: #8e44ad; border-color: #8e44ad; color: white; }
+  .central-chart-container { width: 100%; height: 300px; margin-top: 20px; }
+  .trade-forms { margin-top: 20px; }
+  .trade-form { margin-bottom: 20px; }
+  .expanded { max-height: none; }
 </style>
 
 <header class="hero-section">
   <div class="container">
     <h1 class="display-4">{{ name }} ({{ ticker }})</h1>
-    <!-- Display the current price -->
     <h2 id="current-price" class="mt-4">${{ current_price }}</h2>
   </div>
 </header>
@@ -125,55 +25,44 @@
 <main class="container my-5">
   <div class="row">
     <div class="col-lg-8">
-      <!-- Stock Detail Section -->
       <div class="card">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">{{ ticker }} Stock Overview</h2>
         </div>
         <div class="card-body">
-          <!-- Central Stock Growth Chart -->
           <div class="central-chart-container">
             <canvas id="stockChart"></canvas>
           </div>
 
-          <!-- Stock Description -->
           <p class="mt-4 description" id="description">{{ description }}</p>
           <span class="show-more" id="show-more" onclick="toggleDescription()">Show More</span>
 
-          <!-- Add to Watchlist Button -->
           <button class="btn btn-custom mt-4" onclick="addToWatchlist('{{ ticker }}')">Add to Watchlist</button>
-          
-          <!-- Remove from Watchlist Button -->
-          <button class="btn btn-danger-custom mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
+          <button class="btn btn-danger mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
 
           <a class="btn btn-custom mt-4" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Data</a>
 
-          <!-- Trade Forms for Buying and Selling Stocks -->
           <div class="trade-forms">
-            <!-- Buy Stock Form -->
-            <form class="trade-form" onsubmit="buyStock('{{ ticker }}', event)">
+            <form class="trade-form" onsubmit="addToCart('{{ ticker }}', 'buy', event)">
               <div class="form-group">
                 <label for="buy-quantity">Buy Quantity:</label>
                 <input type="number" id="buy-quantity" class="form-control" placeholder="Enter quantity" required>
               </div>
-              <button type="submit" class="btn btn-success">Buy Stock</button>
+              <button type="submit" class="btn btn-success">Buy in Cart</button>
             </form>
 
-            <!-- Sell Stock Form -->
-            <form class="trade-form" onsubmit="sellStock('{{ ticker }}', event)">
+            <form class="trade-form" onsubmit="addToCart('{{ ticker }}', 'sell', event)">
               <div class="form-group">
                 <label for="sell-quantity">Sell Quantity:</label>
                 <input type="number" id="sell-quantity" class="form-control" placeholder="Enter quantity" required>
               </div>
-              <button type="submit" class="btn btn-danger">Sell Stock</button>
+              <button type="submit" class="btn btn-danger">Sell in Cart</button>
             </form>
           </div>
-
         </div>
       </div>
     </div>
 
-    <!-- Watchlist on the Right -->
     <div class="col-lg-4">
       <div class="card watchlist-container">
         <div class="card-header">
@@ -185,8 +74,8 @@
             <li class="list-group-item watchlist-item" id="watchlist-item-{{ item }}">
               <div class="stock-info">
                 <a href="{{ url_for('stock_detail', ticker=item) }}" class="stock-link">
-                <div>{{ item }}</div>
-              </a>
+                  <div>{{ item }}</div>
+                </a>
                 <div class="stock-price" id="price-{{ item }}"></div>
               </div>
               <div class="chart-container">
@@ -203,7 +92,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Fetch and display the current price dynamically
   function updateCurrentPrice(ticker) {
     fetch(`/get_stock_price?ticker=${ticker}`)
       .then(response => response.json())
@@ -214,163 +102,92 @@
       .catch(error => console.error('Error fetching current stock price:', error));
   }
 
-  // Function to update watchlist without page refresh
-  function addToWatchlist(ticker) {
-    fetch(`/add_to_watchlist`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let watchlist = document.getElementById('watchlist');
-            let listItem = document.createElement('li');
-            listItem.classList.add('list-group-item', 'watchlist-item');
-            listItem.setAttribute('id', `watchlist-item-${ticker}`);
-            listItem.innerHTML = `
-                <div class="stock-info">
-                    <div>${ticker}</div>
-                    <div class="stock-price" id="price-${ticker}"></div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chart-${ticker}"></canvas>
-                </div>`;
-            watchlist.appendChild(listItem);
-
-            // Fetch and update the price and chart immediately
-            fetch(`/get_stock_price?ticker=${ticker}`)
-                .then(response => response.json())
-                .then(stockData => {
-                    document.getElementById(`price-${ticker}`).textContent = `$${stockData.price}`;
-                    updateStockChart(ticker, stockData.prices);
-                })
-                .catch(error => console.error('Error fetching stock price:', error));
-        } else {
-            alert('Could not add to watchlist');
-        }
-    })
-    .catch(error => console.error('Error adding to watchlist:', error));
-  }
-
-  // Function to remove a stock from the watchlist
-  function removeFromWatchlist(ticker) {
-    fetch(`/remove_from_watchlist`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let listItem = document.getElementById(`watchlist-item-${ticker}`);
-            listItem.remove();
-        } else {
-            alert('Could not remove from watchlist');
-        }
-    })
-    .catch(error => console.error('Error removing from watchlist:', error));
-  }
-
-  // Update stock prices and charts dynamically in the watchlist
-  function updateWatchlistPrices() {
-    const tickers = {{ watchlist | tojson }};
-    tickers.forEach(ticker => {
-      fetch(`/get_stock_price?ticker=${ticker}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
-          updateStockChart(ticker, data.prices);
-        })
-        .catch(error => console.error('Error fetching stock price:', error));
-    });
-  }
-
-  // Update the central stock growth chart using Chart.js
   function updateCentralStockChart(ticker, prices) {
     const ctx = document.getElementById('stockChart').getContext('2d');
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: prices.map((_, index) => index),  // X-axis labels (could be dates)
+        labels: Array.from({length: prices.length}, (_, i) => `Day ${i + 1}`),
         datasets: [{
           label: `${ticker} Price`,
-          data: prices,  // Y-axis data (prices)
-          backgroundColor: 'rgba(52, 152, 219, 0.2)',
-          borderColor: 'rgba(52, 152, 219, 1)',
-          borderWidth: 2,
-          fill: true,
+          data: prices,
+          borderColor: '#3498db',
+          fill: false,
         }]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
         scales: {
-          x: {
-            display: false  // Hide the X-axis labels for simplicity
-          },
           y: {
-            ticks: {
-              callback: function(value) {
-                return '$' + value;  // Add dollar sign to Y-axis labels
-              }
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false  // Hide the legend
+            beginAtZero: false
           }
         }
       }
     });
   }
 
-  // Update the stock growth chart using Chart.js for watchlist items
-  function updateStockChart(ticker, prices) {
+  function updateWatchlistPrices() {
+    document.querySelectorAll('.list-group-item.watchlist-item').forEach(function(item) {
+      const ticker = item.id.replace('watchlist-item-', '');
+      fetch(`/get_stock_price?ticker=${ticker}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
+          updateWatchlistChart(ticker, data.prices);
+        })
+        .catch(error => console.error('Error fetching watchlist stock price:', error));
+    });
+  }
+
+  function updateWatchlistChart(ticker, prices) {
     const ctx = document.getElementById(`chart-${ticker}`).getContext('2d');
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: prices.map((_, index) => index),  // X-axis labels (could be dates)
+        labels: Array.from({length: prices.length}, (_, i) => `Day ${i + 1}`),
         datasets: [{
           label: `${ticker} Price`,
-          data: prices,  // Y-axis data (prices)
-          backgroundColor: 'rgba(52, 152, 219, 0.2)',
-          borderColor: 'rgba(52, 152, 219, 1)',
-          borderWidth: 2,
-          fill: true,
+          data: prices,
+          borderColor: '#8e44ad',
+          fill: false,
         }]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
         scales: {
-          x: {
-            display: false  // Hide the X-axis labels for simplicity
-          },
           y: {
-            ticks: {
-              callback: function(value) {
-                return '$' + value;  // Add dollar sign to Y-axis labels
-              }
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false  // Hide the legend
+            beginAtZero: false
           }
         }
       }
     });
   }
 
-  // Function to toggle the "Show More" / "Show Less" functionality
+  function addToCart(ticker, action, event) {
+    event.preventDefault();
+    const quantity = action === 'buy' ? document.getElementById('buy-quantity').value : document.getElementById('sell-quantity').value;
+
+    const cartItem = {
+        type: 'stock',
+        contract: ticker,
+        action: action,
+        quantity: quantity
+    };
+
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cartItem)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Item added to cart');
+        } else {
+            alert('Error adding to cart');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
   function toggleDescription() {
     const description = document.getElementById('description');
     const showMore = document.getElementById('show-more');
@@ -384,63 +201,17 @@
     }
   }
 
-  // JavaScript functions for trading stocks
-  function buyStock(ticker, event) {
-    event.preventDefault();
-    const quantity = document.getElementById('buy-quantity').value;
-
-    fetch('/buy_stock', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker, quantity: quantity })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`Bought ${quantity} shares of ${ticker} successfully! New balance: $${data.balance}`);
-        } else {
-            alert(data.error || 'Failed to buy stock');
-        }
-    })
-    .catch(error => console.error('Error buying stock:', error));
-  }
-
-  function sellStock(ticker, event) {
-    event.preventDefault();
-    const quantity = document.getElementById('sell-quantity').value;
-
-    fetch('/sell_stock', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker, quantity: quantity })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`Sold ${quantity} shares of ${ticker} successfully! New balance: $${data.balance}`);
-        } else {
-            alert(data.error || 'Failed to sell stock');  // Show error message if sell is unsuccessful
-        }
-    })
-    .catch(error => console.error('Error selling stock:', error));
-}
-
-
-  // Initialize stock prices and charts on page load
   document.addEventListener('DOMContentLoaded', function() {
     updateCurrentPrice('{{ ticker }}');
-    setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);  // Update current price every 30 seconds
+    setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);
     updateWatchlistPrices();
-    setInterval(updateWatchlistPrices, 30000);  // Update watchlist prices every 30 seconds
+    setInterval(updateWatchlistPrices, 30000);
   });
-
 </script>
 
 {% endblock %}
+
+
 
 
 

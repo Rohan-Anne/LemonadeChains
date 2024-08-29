@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Cart{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1>Your Cart</h1>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Contract/Ticker</th>
+        <th>Strike Price</th>
+        <th>Expiration</th>
+        <th>Action</th>
+        <th>Quantity</th>
+        <th>Remove</th>
+      </tr>
+    </thead>
+    <tbody id="cart-items">
+      {% for item in cart %}
+      <tr>
+        <td>{{ item.type }}</td>
+        <td>{{ item.contract }}</td>
+        <td>{{ item.strike }}</td>
+        <td>{{ item.expiration }}</td>
+        <td>{{ item.action }}</td>
+        <td>{{ item.quantity }}</td>
+        <td><button class="btn btn-danger" onclick="removeFromCart('{{ item.contract }}', '{{ item.action }}')">Remove</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button class="btn btn-primary" onclick="confirmTrades()">Confirm Trades</button>
+</div>
+
+<script>
+  function removeFromCart(contract, action) {
+    const payload = { contract: contract, action: action };
+    fetch('/remove_from_cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Item removed from cart');
+            location.reload();
+        } else {
+            alert('Error removing item from cart');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  function confirmTrades() {
+    fetch('/confirm_trades', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Trades confirmed successfully!');
+            window.location.href = '/simulator';
+        } else {
+            alert('Error confirming trades');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+</script>
+{% endblock %}
