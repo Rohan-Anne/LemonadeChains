@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from backend.OptionsManager import OptionsManager
 import uuid
 import pandas as pd
@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import io
 import base64
+from fredapi import Fred
+import ssl
+import urllib.request
+import os
+import pickle
 
 
 
@@ -19,7 +24,7 @@ class OptionsAccount:
         self.password = password
         self.positions = {}
         self.stockpositions = {}
-        self.r = risk_free_rate
+        self.r = self.get_risk_free_rate()
         self.sigma = volatility
         self.signed_in = False
 
@@ -45,6 +50,40 @@ class OptionsAccount:
         account.positions = data.get('positions', {})
         account.stockpositions = data.get('stockpositions', {})
         return account
+
+    def get_risk_free_rate(self):
+        # Global SSL context setting
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+        # Define cache file location
+        CACHE_FILE = 'risk_free_rate_cache.pkl'
+
+        # Function to fetch or load cached risk-free rate
+        def fetch_risk_free_rate(fred):
+            # Check if cached value exists and is fresh (same day)
+            if os.path.exists(CACHE_FILE):
+                with open(CACHE_FILE, 'rb') as f:
+                    cache_data = pickle.load(f)
+                    if cache_data['date'] == datetime.today().date():
+                        return cache_data['rate']
+
+            # Fetch the latest risk-free rate using a more efficient query
+            try:
+                risk_free_rate = fred.get_series('DGS3MO', realtime_start=datetime.today().strftime('%Y-%m-%d')).iloc[-1] / 100
+                # Cache the result with today's date
+                with open(CACHE_FILE, 'wb') as f:
+                    pickle.dump({'rate': risk_free_rate, 'date': datetime.today().date()}, f)
+                return risk_free_rate
+            except urllib.error.URLError as e:
+                print(f"Failed to retrieve data: {e}")
+                return 0.01  # Fallback to default rate if API call fails
+
+        # Initialize Fred API
+        fred_api_key = "69c0e374a0a586dc55cda47429226921"  # Replace with your FRED API key
+        fred = Fred(api_key=fred_api_key)
+
+        # Fetch the risk-free rate
+        return fetch_risk_free_rate(fred)
 
     def sign_in(self, entered_password):
         if entered_password == self.password:
@@ -142,7 +181,7 @@ class OptionsAccount:
         if date.tzinfo is not None:
             date = date.replace(tzinfo=None)
 
-        price = self.options_manager.calculateOptionPrice(ticker, strike_price, date, option_type, self.r, self.sigma)
+        price = self.options_manager.calculateOptionPrice(ticker, strike_price, date, option_type, self.r)
         if price is None:
             print("Failed to calculate option price.")
             return False, "Failed to calculate option price"
@@ -196,7 +235,7 @@ class OptionsAccount:
      
      option_position = self.positions[option_key]
 
-     price = self.options_manager.calculateOptionPrice(ticker, strike_price, date, option_type, self.r, self.sigma)
+     price = self.options_manager.calculateOptionPrice(ticker, strike_price, date, option_type, self.r)
      if price is None:
             print("Failed to calculate option price.")
             return False, "Failed to calculate option price"
@@ -249,13 +288,19 @@ class OptionsAccount:
             total_value += position_value
         return total_value
 
-    def plot_single_profit_loss(self, ticker, expiration_date, option_type, strike_price):
+    
+    def plot_single_profit_loss_data(self, ticker, expiration_date, option_type, strike_price):
         if not self.signed_in:
             raise ValueError("Please sign in before performing any transactions.")
-    
+        
         if option_type not in ['call', 'put']:
-            print(f"Invalid option type in plot_single_profit_loss: {option_type}")
             raise ValueError("Invalid option type. Use 'call' or 'put'.")
+        
+        expiration_date = expiration_date + timedelta(days=1)
+
+        expiration_date = expiration_date.strftime('%Y-%m-%d')
+
+    
 
         print(f"Generating profit/loss for {ticker}, {option_type}, strike price {strike_price}, expiration {expiration_date}")
 
@@ -264,73 +309,83 @@ class OptionsAccount:
             raise ValueError(f"No stock price found for {ticker}")
 
         K = strike_price
-        T = (expiration_date - pd.Timestamp.now()).days / 365.0
-        stock_price_range = np.linspace(0.5 * S, 1.5 * S, 100)
+        T = (pd.Timestamp(expiration_date) - pd.Timestamp.now()).days / 365.0
 
+        # Define stock price range to show full extent of max loss and profit
+        min_price = 0
+        max_price = 2 * S  # Adjust as needed
+        stock_price_range = np.linspace(min_price, max_price, 100)
+
+        # Calculate premium paid
+        print("Ticker: " + str(ticker))
+        print("K: " + str(K))
+        print("Expiration Date: " + str(expiration_date))
+        print("Option Type: " + str(option_type))
+        print("R: " + str(self.r))
+        premium_paid = self.options_manager.calculateOptionPrice(ticker, K, expiration_date, option_type, self.r)
+
+        # Initialize profit/loss values
         profits = []
-        premium_paid = self.options_manager.calculateOptionPrice(ticker, K, expiration_date, option_type, self.r, self.sigma)
 
         for stock_price in stock_price_range:
             if option_type == 'call':
                 intrinsic_value = max(stock_price - K, 0)
-            else:
+                profit = (intrinsic_value - premium_paid)
+                if stock_price < K:
+                    profit = -premium_paid
+            else:  # put option
                 intrinsic_value = max(K - stock_price, 0)
-            profit = (intrinsic_value - premium_paid)
+                profit = (intrinsic_value - premium_paid)
+                if stock_price > K:
+                    profit = -premium_paid
             profits.append(profit)
 
-        fig = go.Figure()
+        # Breakeven calculation
+        if option_type == 'call':
+            breakeven_price = K + premium_paid  # Call breakeven price
+        else:
+            breakeven_price = K - premium_paid  # Put breakeven price
 
-        # Add the profit/loss line
-        fig.add_trace(go.Scatter(x=stock_price_range, y=profits, mode='lines', name=f'{option_type.capitalize()} P/L'))
+        # Separate profits and prices into two parts: before and after breakeven
+        losses = []
+        gains = []
+        for i, price in enumerate(stock_price_range):
+            if price <= breakeven_price:
+                losses.append((price, profits[i]))
+            else:
+                gains.append((price, profits[i]))
 
-        # Add zero line
-        fig.add_trace(go.Scatter(x=stock_price_range, y=[0]*len(stock_price_range), mode='lines', line=dict(color='black', dash='dash'), showlegend=False))
+        # Max profit and loss calculations
+        if option_type == 'call':
+            max_profit_text = "Unlimited"  # Call option has unlimited potential
+            max_loss_value = -premium_paid
+        else:
+            max_profit_text = f"${K - premium_paid:.2f}"  # Put option max profit
+            max_loss_value = -premium_paid  # Max loss is premium paid for puts
 
-        # Update layout for better appearance
-        fig.update_layout(
-        title=f'Profit/Loss vs Stock Price for {ticker} {option_type.capitalize()} Option',
-        xaxis_title='Stock Price at Expiration',
-        yaxis_title='Profit/Loss',
-        legend_title='Legend',
-        template='plotly_white',
-        xaxis=dict(
-            showline=True,
-            showgrid=True,
-            showticklabels=True,
-            linecolor='rgb(204, 204, 204)',
-            linewidth=2,
-            ticks='outside',
-            tickfont=dict(
-                family='Arial',
-                size=12,
-                color='rgb(82, 82, 82)',
-            ),
-        ),
-        yaxis=dict(
-            showline=True,
-            showgrid=True,
-            showticklabels=True,
-            linecolor='rgb(204, 204, 204)',
-            linewidth=2,
-            ticks='outside',
-            tickfont=dict(
-                family='Arial',
-                size=12,
-                color='rgb(82, 82, 82)',
-            ),
-        ),
-        plot_bgcolor='white'
-        )
+        # Data to return to the frontend
+        data = {
+            'stock_price_range_losses': [price for price, _ in losses],
+            'profits_losses': [profit for _, profit in losses],
+            'stock_price_range_gains': [price for price, _ in gains],
+            'profits_gains': [profit for _, profit in gains],
+            'annotations': {
+                'breakeven': {
+                    'price': breakeven_price,
+                    'text': f"Breakeven: ${breakeven_price:.2f}"
+                },
+                'max_loss': {
+                    'value': max_loss_value,
+                    'text': f"Max Loss: ${-premium_paid:.2f}"  # Max loss is always premium paid for both call and put
+                },
+                'max_profit': {
+                    'text': f"Max Profit: {max_profit_text}",
+                    'unlimited': option_type == 'call'
+                }
+            }
+        }
 
-        # Save figure to a bytes buffer and encode it as a base64 string
-        buf = io.BytesIO()
-        fig.write_image(buf, format='png')
-        buf.seek(0)
-        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-
-        # Return the base64 image string
-        return img_base64
-
+        return data
 
 
     def plot_combined_profit_loss(self, tickers_and_keys, stock_price_range=None):

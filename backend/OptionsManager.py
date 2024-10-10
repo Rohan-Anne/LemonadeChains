@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import scipy.stats as si
+from datetime import datetime, timedelta
 
 class OptionsManager:
     
@@ -47,15 +48,40 @@ class OptionsManager:
         self.ticker_data = yf.Ticker(ticker)
         stock_price = self.ticker_data.history(period="1d")['Close'].iloc[-1]
         return stock_price
+    
+    def get_implied_volatility(self, ticker, expiration_date, option_type, strike_price):
+        try:
+            expiration_dt = datetime.strptime(expiration_date, "%Y-%m-%d")
+            expiration_date = expiration_dt.strftime("%Y-%m-%d")  # Adjust date format
 
-    def calculateOptionPrice(self, ticker, strike_price, expiration_date, option_type, r, sigma):
+            # Fetch the stock option chain for the expiration date
+            stock = yf.Ticker(ticker)
+            option_chain = stock.option_chain(expiration_date)
+            
+            # Select the correct option type (calls or puts)
+            options = option_chain.calls if option_type == 'call' else option_chain.puts
+            
+            # Find the specific contract by strike price and return its implied volatility
+            option_row = options[options['strike'] == strike_price]
+            if option_row.empty:
+                raise ValueError(f"Contract with strike price {strike_price} not found.")
+            
+            implied_vol = option_row['impliedVolatility'].values[0]
+            
+            return implied_vol
+
+        except Exception as e:
+            print(f"Error fetching implied volatility for {ticker} with strike price {strike_price} and expiration {expiration_date}: {e}")
+            return None
+
+    def calculateOptionPrice(self, ticker, strike_price, expiration_date, option_type, r):
         S = self.getStockPrice(ticker)
         K = strike_price
         T = (pd.to_datetime(expiration_date).replace(tzinfo=None) - pd.Timestamp.now().replace(tzinfo=None)).days / 365.0
-        price = self.black_scholes(S, K, T, r, sigma, option_type)
+        volatility = self.get_implied_volatility(ticker, expiration_date, option_type, K)
+        price = self.black_scholes(S, K, T, r, volatility, option_type)
         return price
 
 
 
-
-
+    

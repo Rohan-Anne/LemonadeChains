@@ -76,6 +76,7 @@
     font-size: 1.2rem;
     color: #8e44ad;
   }
+  /* Height and width adjustments for mini TradingView widget */
   .chart-container {
     width: 100px;
     height: 50px;
@@ -88,8 +89,12 @@
   /* Central ETF chart styling */
   .central-chart-container {
     width: 100%;
-    height: 300px;
+    height: 400px;
     margin-top: 20px;
+    position: relative;
+  }
+  #tradingview-chart {
+    height: 100% !important; /* Ensure the TradingView chart takes up the full height */
   }
   /* Description toggling styling */
   .description {
@@ -111,7 +116,7 @@
   <div class="container">
     <h1 class="display-4">{{ name }} ({{ ticker }})</h1>
     <!-- Display the current price -->
-    <h2 id="current-price" class="mt-4">${{ current_price }}</h2>
+    <h2 id="current-price" class="mt-4">$</h2>
   </div>
 </header>
 
@@ -124,9 +129,9 @@
           <h2 class="card-title h5 mb-0">{{ ticker }} ETF Overview</h2>
         </div>
         <div class="card-body">
-          <!-- Central ETF Growth Chart -->
+          <!-- TradingView Chart Container -->
           <div class="central-chart-container">
-            <canvas id="etfChart"></canvas>
+            <div id="tradingview-chart"></div>
           </div>
 
           <!-- ETF Description -->
@@ -139,6 +144,8 @@
           <!-- Remove from Watchlist Button -->
           <button class="btn btn-danger-custom mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
 
+          <!-- New Options Data Button -->
+          <a class="btn btn-custom mt-4" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Contracts</a>
         </div>
       </div>
     </div>
@@ -155,13 +162,12 @@
             <li class="list-group-item watchlist-item" id="watchlist-item-{{ item }}">
               <div class="stock-info">
                 <a href="{{ url_for('etf_detail', ticker=item) }}" class="stock-link">
-                <div>{{ item }}</div>
-              </a>
+                  <div>{{ item }}</div>
+                </a>
                 <div class="stock-price" id="price-{{ item }}"></div>
               </div>
-              <div class="chart-container">
-                <canvas id="chart-{{ item }}"></canvas>
-              </div>
+              <!-- TradingView Mini Chart -->
+              <div id="mini-chart-{{ item }}" class="tv-widget-mini"></div>
             </li>
             {% endfor %}
           </ul>
@@ -171,197 +177,54 @@
   </div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Include TradingView Widget Script -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
 <script>
-  // Fetch and display the current price dynamically
+  // Function to initialize TradingView chart for the main ETF
+  function loadTradingViewChart(ticker) {
+    new TradingView.widget({
+      "container_id": "tradingview-chart",
+      "autosize": true,
+      "symbol": ticker,
+      "interval": "D",
+      "timezone": "Etc/UTC",
+      "theme": "light",
+      "style": "1",
+      "locale": "en",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "hide_side_toolbar": false,
+      "allow_symbol_change": true,
+      "details": true,
+      "studies": ["RSI@tv-basicstudies"],
+      "show_popup_button": true,
+      "popup_width": "1000",
+      "popup_height": "650"
+    });
+  }
+
   function updateCurrentPrice(ticker) {
     fetch(`/get_stock_price?ticker=${ticker}`)
       .then(response => response.json())
       .then(data => {
         document.getElementById('current-price').textContent = `$${data.price}`;
-        updateCentralEtfChart(ticker, data.prices);
       })
       .catch(error => console.error('Error fetching current ETF price:', error));
   }
 
-  // Function to update watchlist without page refresh
-  function addToWatchlist(ticker) {
-    fetch(`/add_to_watchlist`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let watchlist = document.getElementById('watchlist');
-            let listItem = document.createElement('li');
-            listItem.classList.add('list-group-item', 'watchlist-item');
-            listItem.setAttribute('id', `watchlist-item-${ticker}`);
-            listItem.innerHTML = `
-                <div class="stock-info">
-                    <div>${ticker}</div>
-                    <div class="stock-price" id="price-${ticker}"></div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chart-${ticker}"></canvas>
-                </div>`;
-            watchlist.appendChild(listItem);
-
-            // Fetch and update the price and chart immediately
-            fetch(`/get_stock_price?ticker=${ticker}`)
-                .then(response => response.json())
-                .then(stockData => {
-                    document.getElementById(`price-${ticker}`).textContent = `$${stockData.price}`;
-                    updateEtfChart(ticker, stockData.prices);
-                })
-                .catch(error => console.error('Error fetching ETF price:', error));
-        } else {
-            alert('Could not add to watchlist');
-        }
-    })
-    .catch(error => console.error('Error adding to watchlist:', error));
-  }
-
-  // Function to remove an ETF from the watchlist
-  function removeFromWatchlist(ticker) {
-    fetch(`/remove_from_watchlist`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ticker: ticker })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            let listItem = document.getElementById(`watchlist-item-${ticker}`);
-            listItem.remove();
-        } else {
-            alert('Could not remove from watchlist');
-        }
-    })
-    .catch(error => console.error('Error removing from watchlist:', error));
-  }
-
-  // Update ETF prices and charts dynamically in the watchlist
-  function updateWatchlistPrices() {
-    const tickers = {{ watchlist | tojson }};
-    tickers.forEach(ticker => {
-      fetch(`/get_stock_price?ticker=${ticker}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
-          updateEtfChart(ticker, data.prices);
-        })
-        .catch(error => console.error('Error fetching ETF price:', error));
-    });
-  }
-
-  // Update the central ETF growth chart using Chart.js
-  function updateCentralEtfChart(ticker, prices) {
-    const ctx = document.getElementById('etfChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: prices.map((_, index) => index),  // X-axis labels (could be dates)
-        datasets: [{
-          label: `${ticker} Price`,
-          data: prices,  // Y-axis data (prices)
-          backgroundColor: 'rgba(52, 152, 219, 0.2)',
-          borderColor: 'rgba(52, 152, 219, 1)',
-          borderWidth: 2,
-          fill: true,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            display: false  // Hide the X-axis labels for simplicity
-          },
-          y: {
-            ticks: {
-              callback: function(value) {
-                return '$' + value;  // Add dollar sign to Y-axis labels
-              }
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false  // Hide the legend
-          }
-        }
-      }
-    });
-  }
-
-  // Update the ETF growth chart using Chart.js for watchlist items
-  function updateEtfChart(ticker, prices) {
-    const ctx = document.getElementById(`chart-${ticker}`).getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: prices.map((_, index) => index),  // X-axis labels (could be dates)
-        datasets: [{
-          label: `${ticker} Price`,
-          data: prices,  // Y-axis data (prices)
-          backgroundColor: 'rgba(52, 152, 219, 0.2)',
-          borderColor: 'rgba(52, 152, 219, 1)',
-          borderWidth: 2,
-          fill: true,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            display: false  // Hide the X-axis labels for simplicity
-          },
-          y: {
-            ticks: {
-              callback: function(value) {
-                return '$' + value;  // Add dollar sign to Y-axis labels
-              }
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false  // Hide the legend
-          }
-        }
-      }
-    });
-  }
-
-  // Function to toggle the "Show More" / "Show Less" functionality
-  function toggleDescription() {
-    const description = document.getElementById('description');
-    const showMore = document.getElementById('show-more');
-
-    if (description.classList.contains('expanded')) {
-      description.classList.remove('expanded');
-      showMore.textContent = 'Show More';
-    } else {
-      description.classList.add('expanded');
-      showMore.textContent = 'Show Less';
-    }
-  }
-
   // Initialize ETF prices and charts on page load
   document.addEventListener('DOMContentLoaded', function() {
+    loadTradingViewChart('{{ ticker }}');  // Load the main TradingView chart for the ETF
     updateCurrentPrice('{{ ticker }}');
     setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);  // Update current price every 30 seconds
-    updateWatchlistPrices();
-    setInterval(updateWatchlistPrices, 30000);  // Update watchlist prices every 30 seconds
   });
-
 </script>
 
 {% endblock %}
+
+
+
+
+
+

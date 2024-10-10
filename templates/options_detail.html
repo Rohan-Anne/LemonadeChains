@@ -4,6 +4,32 @@
     <meta charset="UTF-8">
     <title>Options Detail</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+      .table-container { margin-top: 20px; }
+      .filter-container { margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
+      .filter-group { margin-bottom: 10px; }
+      .graph-and-details-container { display: flex; margin-top: 10px; justify-content: center; }
+      .graph-container { flex: 2; margin-right: 10px; height: 600px; width: 60%; display: none; text-align: center; }
+      .details-table {  
+          flex: 1; 
+          width: 30%; 
+          margin-left: 1px; 
+          border: 1px solid #ccc; 
+          background-color: #f9f9f9; 
+          display: none; /* Hidden initially */
+          text-align: left;
+      }
+      table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+      }
+      table, th, td {
+          border: 1px solid black;
+          padding: 10px;
+          text-align: left;
+      }
+    </style>
 </head>
 <body>
     {% extends 'base.html' %}
@@ -11,16 +37,9 @@
     {% block title %}Options for {{ ticker }}{% endblock %}
 
     {% block content %}
-    <style>
-      .table-container { margin-top: 20px; }
-      .filter-container { margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
-      .filter-group { margin-bottom: 10px; }
-      .graph-and-trade-container { display: flex; margin-top: 10px; justify-content: center; }
-      .graph-container { flex: 2; margin-right: 10px; height: 600px; width: 80%; display: none; text-align: center; }
-    </style>
-
     <div class="container">
       <h1 class="mt-4">{{ ticker }} Options</h1>
+      
       <!-- Filter Section -->
       <div class="filter-container">
         <div class="filter-group">
@@ -100,9 +119,33 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Placeholder for Expandable Graph and Details Section -->
+      <template id="expandable-template">
+        <div class="graph-and-details-container">
+          <!-- Graph Container -->
+          <div class="graph-container"></div>
+          
+          <!-- Details Table -->
+          <div class="details-table">
+            <h4>Details</h4>
+            <table>
+              <tr><td><strong>Max Profit:</strong></td><td class="max-profit"></td></tr>
+              <tr><td><strong>Max Loss:</strong></td><td class="max-loss"></td></tr>
+              <tr><td><strong>Breakeven Stock Price:</strong></td><td class="breakeven-price"></td></tr>
+              <tr><td><strong>Current Stock Price:</strong></td><td class="current-stock-price">Hover over graph</td></tr>
+            </table>
+          </div>
+        </div>
+      </template>
+
     </div>
 
     <script>
+      function updateDebugInfo(message) {
+          console.log("Debug: ", message); // Log to console
+      }
+
       document.getElementById('apply-filters').addEventListener('click', function() {
         const ticker = '{{ ticker }}';
         const expirationDate = document.getElementById('expiration-date').value;
@@ -117,6 +160,8 @@
             option_type: optionType
         };
 
+        updateDebugInfo(`Fetching options data with filters: ${JSON.stringify(filters)}`);
+
         fetch('/get_options_data', {
             method: 'POST',
             headers: {
@@ -127,16 +172,18 @@
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                console.error('Error fetching options data:', data.error);
+                updateDebugInfo(`Error fetching options data: ${data.error}`);
             } else {
+                updateDebugInfo('Options data fetched successfully.');
                 populateTable('calls-table-body', data.calls, 'call', expirationDate);
                 populateTable('puts-table-body', data.puts, 'put', expirationDate);
             }
         })
-        .catch(error => console.error('Error fetching options data:', error));
+        .catch(error => updateDebugInfo(`Error fetching options data: ${error}`));
       });
 
       function populateTable(tableBodyId, data, optionType, expirationDate) {
+        updateDebugInfo(`Populating table ${tableBodyId} with ${data.length} ${optionType} options.`);
         const tableBody = document.getElementById(tableBodyId);
         tableBody.innerHTML = '';  // Clear the table body
 
@@ -159,84 +206,170 @@
                 <td>
                   <button class="btn btn-success" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'buy')">Buy in Cart</button>
                   <button class="btn btn-danger" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'sell')">Sell in Cart</button>
-                  <button class="btn btn-secondary" onclick="toggleProfitGraph('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', '${graphId}')">Toggle Graph</button>
+                  <button class="btn btn-secondary" onclick="toggleProfitGraph(this, '${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', '${graphId}')">Toggle Graph</button>
                 </td>
             `;
             tableBody.appendChild(row);
 
-            // Add a graph container only
-            const graphRow = document.createElement('tr');
-            graphRow.innerHTML = `
+            // Add an expandable row for each contract
+            const expandableRow = document.createElement('tr');
+            expandableRow.innerHTML = `
                 <td colspan="12">
-                    <div class="graph-and-trade-container">
-                        <div id="${graphId}" class="graph-container"></div>
-                    </div>
+                    <div id="${graphId}" class="expandable-content"></div>
                 </td>
             `;
-            tableBody.appendChild(graphRow);
+            tableBody.appendChild(expandableRow);
         });
       }
 
-      function toggleProfitGraph(ticker, strike, type, expiration, graphId) {
-        const graphRow = document.getElementById(graphId);
+      function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
+    const expandableContent = document.getElementById(graphId);
+    
+    if (expandableContent.innerHTML !== '') {
+        // If already expanded, collapse it
+        expandableContent.innerHTML = '';
+        updateDebugInfo(`Hiding graph and details for ${graphId}`);
+    } else {
+        // If collapsed, expand and fetch data
+        const expandableTemplate = document.getElementById('expandable-template').content.cloneNode(true);
+        expandableContent.appendChild(expandableTemplate);
 
-        if (!graphRow) {
-            console.error(`Element with ID ${graphId} not found.`);
-            return;
-        }
+        const graphContainer = expandableContent.querySelector('.graph-container');
+        const detailsTable = expandableContent.querySelector('.details-table');
+        
+        const payload = {
+            ticker: ticker,
+            strike: strike,
+            expiration: expiration,
+            type: type
+        };
 
-        if (graphRow.style.display === 'block') {
-            graphRow.style.display = 'none'; // Hide the graph if already displayed
-        } else {
-            const payload = {
-                ticker: ticker,
-                strike: strike,
-                expiration: expiration,
-                type: type
-            };
+        updateDebugInfo(`Fetching profit data with payload: ${JSON.stringify(payload)}`);
 
-            fetch('/get_option_profit_data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    console.error(`Error generating graph: ${data.error}`);
-                } else {
-                    const stockPriceRange = data.stock_price_range;
-                    const profits = data.profits;
+        fetch('/get_option_profit_data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                updateDebugInfo(`Error generating graph: ${data.error}`);
+            } else {
+                const stockPriceRangeLosses = data.stock_price_range_losses;
+                const profitsLosses = data.profits_losses;
+                const stockPriceRangeGains = data.stock_price_range_gains;
+                const profitsGains = data.profits_gains;
+                const annotations = data.annotations;
 
-                    if (stockPriceRange && profits && stockPriceRange.length > 0 && profits.length > 0) {
-                        const graphData = [
-                            {
-                                x: stockPriceRange,
-                                y: profits,
-                                type: 'scatter',
-                                mode: 'lines',
-                                name: 'Profit/Loss'
+                if (stockPriceRangeLosses.length > 0 || stockPriceRangeGains.length > 0) {
+                    updateDebugInfo(`Generating graph with received data.`);
+
+                    let lossesData, gainsData;
+
+                    if (type === 'put') {
+                        // For put options, gains are below the x-axis and losses are above the x-axis
+                        gainsData = {
+                            x: stockPriceRangeLosses,
+                            y: profitsLosses,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Gains',
+                            line: {
+                                color: 'green',
+                                width: 2
                             }
-                        ];
-
-                        const layout = {
-                            title: 'Profit/Loss Graph',
-                            xaxis: { title: 'Stock Price' },
-                            yaxis: { title: 'Profit/Loss' }
                         };
 
-                        Plotly.newPlot(graphId, graphData, layout);
-                        graphRow.style.display = 'block';  // Show the graph
+                        lossesData = {
+                            x: stockPriceRangeGains,
+                            y: profitsGains,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Losses',
+                            line: {
+                                color: 'red',
+                                width: 2
+                            }
+                        };
                     } else {
-                        console.warn('Received empty or invalid graph data.');
+                        // For call options, losses are below the x-axis and gains are above the x-axis
+                        lossesData = {
+                            x: stockPriceRangeLosses,
+                            y: profitsLosses,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Losses',
+                            line: {
+                                color: 'red',
+                                width: 2
+                            }
+                        };
+
+                        gainsData = {
+                            x: stockPriceRangeGains,
+                            y: profitsGains,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: 'Gains',
+                            line: {
+                                color: 'green',
+                                width: 2
+                            }
+                        };
                     }
+
+                    // Data for the breakeven point
+                    const breakevenData = {
+                        x: [annotations.breakeven.price],
+                        y: [0],
+                        mode: 'markers+text',
+                        name: 'Breakeven',
+                        text: ['Breakeven'],
+                        textposition: 'top center',
+                        marker: {
+                            color: 'blue',
+                            size: 10
+                        }
+                    };
+
+                    // Combine all data traces
+                    const profitData = [lossesData, gainsData, breakevenData];
+
+                    const layout = {
+                        title: `Profit/Loss Graph for ${type.toUpperCase()} Option`,
+                        xaxis: { title: 'Stock Price', zeroline: true, showgrid: true },
+                        yaxis: { title: 'Profit/Loss ($)', zeroline: true, showgrid: true }
+                    };
+
+                    // Render the plot
+                    Plotly.newPlot(graphContainer, profitData, layout);
+                    graphContainer.style.display = 'block';  // Show the graph
+
+                    // Attach hover event listener to update "Current Stock Price"
+                    graphContainer.on('plotly_hover', function(data) {
+                        const stockPrice = data.points[0].x;
+                        detailsTable.querySelector('.current-stock-price').textContent = stockPrice.toFixed(2);
+                    });
+
+                    // Update the details table with annotation data
+                    updateDebugInfo(`Updating details table with annotations: ${JSON.stringify(annotations)}`);
+                    detailsTable.querySelector('.max-profit').textContent = annotations.max_profit.text;
+                    detailsTable.querySelector('.max-loss').textContent = annotations.max_loss.text;
+                    detailsTable.querySelector('.breakeven-price').textContent = annotations.breakeven.price.toFixed(2);
+                    
+                    detailsTable.style.display = 'block';  // Show the details table
+                } else {
+                    updateDebugInfo(`Received empty or invalid graph data.`);
                 }
-            })
-            .catch(error => console.error('Error fetching graph data:', error));
-        }
-      }
+            }
+        })
+        .catch(error => updateDebugInfo(`Error fetching graph data: ${error}`));
+    }
+}
+
 
       function addToCart(contract, strike, type, expiration, action) {
         const cartItem = {
@@ -246,6 +379,7 @@
             expiration: expiration,
             action: action
         };
+        updateDebugInfo(`Adding to cart: ${JSON.stringify(cartItem)}`);
         fetch('/add_to_cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -255,19 +389,32 @@
         .then(data => {
             if (data.success) {
                 alert('Item added to cart');
+                updateDebugInfo('Item successfully added to cart.');
             } else {
                 alert('Error adding to cart');
+                updateDebugInfo(`Error adding to cart: ${data.error}`);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => updateDebugInfo(`Error: ${error}`));
       }
 
       // Automatically apply filters on page load to show initial data
       document.addEventListener('DOMContentLoaded', function() {
+        updateDebugInfo('Page loaded, applying filters to show initial data.');
         document.getElementById('apply-filters').click();
       });
     </script>
     {% endblock %}
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
 

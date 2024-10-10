@@ -9,10 +9,15 @@
   .card { box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1); margin-bottom: 20px; }
   .btn-custom { background-color: #3498db; border-color: #3498db; color: white; }
   .btn-custom:hover { background-color: #8e44ad; border-color: #8e44ad; color: white; }
-  .central-chart-container { width: 100%; height: 300px; margin-top: 20px; }
+  .central-chart-container { width: 100%; height: 400px; margin-top: 20px; position: relative; }
+  #tradingview-chart { height: 100% !important; }
   .trade-forms { margin-top: 20px; }
   .trade-form { margin-bottom: 20px; }
   .expanded { max-height: none; }
+  /* Watchlist Mini TradingView Charts */
+  .tv-widget-mini { width: 100%; height: 130px; }  /* Increased height for better visibility */
+  .watchlist-item .tv-widget-mini { height: 120px; margin-bottom: 5px; }
+  .stock-info { display: flex; flex-direction: column; }
 </style>
 
 <header class="hero-section">
@@ -30,8 +35,9 @@
           <h2 class="card-title h5 mb-0">{{ ticker }} Stock Overview</h2>
         </div>
         <div class="card-body">
+          <!-- TradingView Chart Container -->
           <div class="central-chart-container">
-            <canvas id="stockChart"></canvas>
+            <div id="tradingview-chart"></div>
           </div>
 
           <p class="mt-4 description" id="description">{{ description }}</p>
@@ -78,9 +84,8 @@
                 </a>
                 <div class="stock-price" id="price-{{ item }}"></div>
               </div>
-              <div class="chart-container">
-                <canvas id="chart-{{ item }}"></canvas>
-              </div>
+              <!-- TradingView Mini Chart -->
+              <div id="mini-chart-{{ item }}" class="tv-widget-mini"></div>
             </li>
             {% endfor %}
           </ul>
@@ -90,75 +95,65 @@
   </div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Include TradingView Widget Script -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
 <script>
-  function updateCurrentPrice(ticker) {
-    fetch(`/get_stock_price?ticker=${ticker}`)
-      .then(response => response.json())
-      .then(data => {
-        document.getElementById('current-price').textContent = `$${data.price}`;
-        updateCentralStockChart(ticker, data.prices);
-      })
-      .catch(error => console.error('Error fetching current stock price:', error));
+  // Function to initialize TradingView chart for the main stock
+  function loadTradingViewChart(ticker) {
+    new TradingView.widget({
+      "container_id": "tradingview-chart",
+      "autosize": true,
+      "symbol": ticker,
+      "interval": "D",
+      "timezone": "Etc/UTC",
+      "theme": "light",
+      "style": "1",
+      "locale": "en",
+      "toolbar_bg": "#f1f3f6",
+      "enable_publishing": false,
+      "hide_side_toolbar": false,
+      "allow_symbol_change": true,
+      "details": true,
+      "studies": ["RSI@tv-basicstudies"],
+      "show_popup_button": true,
+      "popup_width": "1000",
+      "popup_height": "650"
+    });
   }
 
-  function updateCentralStockChart(ticker, prices) {
-    const ctx = document.getElementById('stockChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: Array.from({length: prices.length}, (_, i) => `Day ${i + 1}`),
-        datasets: [{
-          label: `${ticker} Price`,
-          data: prices,
-          borderColor: '#3498db',
-          fill: false,
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: false
-          }
+  // Function to initialize TradingView mini chart for each watchlist item
+  function loadMiniChart(ticker) {
+    new TradingView.widget({
+      "container_id": `mini-chart-${ticker}`,
+      "symbol": ticker,
+      "width": "100%",
+      "height": "130",  /* Increased height for better readability */
+      "locale": "en",
+      "dateRange": "1M",
+      "colorTheme": "light",
+      "trendLineColor": "#37a6ef",
+      "underLineColor": "rgba(55, 166, 239, 0.15)",
+      "isTransparent": true,
+      "autosize": true,
+      "largeChartUrl": ""
+    });
+  }
+
+  // Lazy Loading Optimization using IntersectionObserver
+  function loadWatchlistCharts() {
+    const watchlistItems = document.querySelectorAll('.list-group-item.watchlist-item');
+    const observer = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const ticker = entry.target.id.replace('watchlist-item-', '');
+          loadMiniChart(ticker);  // Load TradingView mini chart directly
+          observer.unobserve(entry.target);  // Stop observing once it's loaded
         }
-      }
+      });
     });
-  }
 
-  function updateWatchlistPrices() {
-    document.querySelectorAll('.list-group-item.watchlist-item').forEach(function(item) {
-      const ticker = item.id.replace('watchlist-item-', '');
-      fetch(`/get_stock_price?ticker=${ticker}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
-          updateWatchlistChart(ticker, data.prices);
-        })
-        .catch(error => console.error('Error fetching watchlist stock price:', error));
-    });
-  }
-
-  function updateWatchlistChart(ticker, prices) {
-    const ctx = document.getElementById(`chart-${ticker}`).getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: Array.from({length: prices.length}, (_, i) => `Day ${i + 1}`),
-        datasets: [{
-          label: `${ticker} Price`,
-          data: prices,
-          borderColor: '#8e44ad',
-          fill: false,
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: false
-          }
-        }
-      }
-    });
+    watchlistItems.forEach(item => observer.observe(item));  // Observe each watchlist item
   }
 
   function addToCart(ticker, action, event) {
@@ -201,15 +196,35 @@
     }
   }
 
+  function updateCurrentPrice(ticker) {
+  fetch(`/get_stock_price?ticker=${ticker}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.price) {
+        document.getElementById('current-price').textContent = `$${data.price}`;
+      } else {
+        console.error('Error: No price returned from API');
+      }
+    })
+    .catch(error => console.error('Error fetching current stock/ETF price:', error));
+}
+
   document.addEventListener('DOMContentLoaded', function() {
-    updateCurrentPrice('{{ ticker }}');
-    setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);
-    updateWatchlistPrices();
-    setInterval(updateWatchlistPrices, 30000);
+    loadTradingViewChart('{{ ticker }}');  // Load TradingView chart for the stock
+    updateCurrentPrice('{{ ticker }}')
+    setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);  // Refresh the price every 30 seconds
+    loadWatchlistCharts();  // Load TradingView mini charts for the watchlist with lazy loading
   });
+
+
 </script>
 
 {% endblock %}
+
+
+
+
+
 
 
 

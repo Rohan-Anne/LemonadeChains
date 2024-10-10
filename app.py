@@ -567,56 +567,41 @@ def get_options_data():
 @app.route('/get_option_profit_data', methods=['POST'])
 def get_option_profit_data():
     data = request.json
-    ticker = data.get('ticker')
+    contract_symbol = data.get('ticker')
     strike = float(data.get('strike'))
     expiration_date = data.get('expiration')
     option_type = data.get('type').lower() if data.get('type') else None
+
+    # Extract the actual stock ticker from the contract symbol
+    ticker_match = re.match(r"([A-Z]+)\d+[C|P]", contract_symbol)
+    if ticker_match:
+        ticker = ticker_match.group(1)  # This extracts only the ticker part, e.g., "GOOGL"
+    else:
+        return jsonify({'error': f'Invalid contract symbol format: {contract_symbol}'}), 400
 
     # Log the received data explicitly
     print(f"Received data - Ticker: {ticker}, Strike: {strike}, Expiration: {expiration_date}, Type: {option_type}")
 
     if option_type not in ['call', 'put']:
-        print(f"Invalid option type received: {option_type}. Use 'call' or 'put'.")
-        return jsonify({'error': f'Invalid option type. Use "call" or "put". Received: {option_type}'}), 400
+        return jsonify({'error': 'Invalid option type. Use "call" or "put".'}), 400
 
     # Convert the expiration date
     expiration_date = datetime.strptime(expiration_date, "%m/%d/%Y, %I:%M:%S %p")
-    print(f"Expiration date converted to datetime: {expiration_date}")
 
     # Retrieve the options account from the session
     options_account_data = session.get('options_account')
     if not options_account_data:
-        print("No options account found in session.")
         return jsonify({'error': 'No options account found in session.'}), 400
 
     options_account = OptionsAccount.from_dict(options_account_data)
     options_account.signed_in = True
-    print(f"Option account retrieved: {options_account.to_dict()}")
-
-    underlying_ticker = ''.join(filter(str.isalpha, ticker)).rstrip('C').rstrip('P')
-    print(f"Underlying stock ticker extracted: {underlying_ticker}")
 
     try:
-        S = options_account.options_manager.getStockPrice(underlying_ticker)
-        K = strike
-        T = (expiration_date - pd.Timestamp.now()).days / 365.0
-        stock_price_range = np.linspace(0.5 * S, 1.5 * S, 100)
-        profits = []
+        # Use the OptionsAccount function to calculate the profit/loss data
+        profit_loss_data = options_account.plot_single_profit_loss_data(ticker, expiration_date, option_type, strike)
 
-        premium_paid = options_account.options_manager.calculateOptionPrice(
-            underlying_ticker, K, expiration_date, option_type, options_account.r, options_account.sigma
-        )
-
-        for stock_price in stock_price_range:
-            if option_type == 'call':
-                intrinsic_value = max(stock_price - K, 0)
-            else:
-                intrinsic_value = max(K - stock_price, 0)
-            profit = (intrinsic_value - premium_paid)
-            profits.append(profit)
-
-        print("Profit/Loss data generated successfully.")
-        return jsonify({'stock_price_range': stock_price_range.tolist(), 'profits': profits})
+        # Return the processed data as JSON
+        return jsonify(profit_loss_data)
 
     except Exception as e:
         print(f"Error generating profit/loss data: {e}")
@@ -839,7 +824,7 @@ def confirm_trades():
             else:
                 success, message = False, "Invalid action for option"
 
-        elif item['type'] == 'stock':
+        elif item['type'] == 'stock' or item['type'] == 'etf':
             # Handle stock trades
             quantity = int(item.get('quantity', 1))  # Default to 1 if quantity is not provided
             if item['action'] == 'buy':
@@ -876,9 +861,6 @@ def confirm_trades():
     session.pop('cart', None)  # Clear the cart after confirming trades
     return jsonify({'success': True})
 
-
-
-
 @app.route('/users')
 def users():
     try:
@@ -892,8 +874,7 @@ def users():
         flash(str(e), 'danger')
         return redirect(url_for('index'))
 
+
 if __name__ == '__main__':
     app.run(debug=True, ssl_context='adhoc')
-
-
-
+ 
