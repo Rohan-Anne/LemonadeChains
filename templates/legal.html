@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Legal Information{% endblock %}
+
+{% block content %}
+<style>
+  /* Global Styling for the Legal Page */
+  .legal-container {
+    padding: 60px 20px;
+    background-color: #f7f7f7;
+  }
+
+  .legal-section {
+    margin-bottom: 50px;
+    padding: 20px 30px;
+    background: #ffffff;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+  }
+
+  .legal-title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
+  .legal-subtitle {
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: #34495e;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #3498db;
+  }
+
+  .legal-subsection-title {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: #2d3436;
+    margin-bottom: 10px;
+  }
+
+  .legal-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #7f8c8d;
+    margin-bottom: 20px;
+  }
+
+  .legal-text strong {
+    color: #2c3e50;
+  }
+
+  .legal-list {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin-bottom: 20px;
+  }
+
+  .legal-list li {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #7f8c8d;
+  }
+
+  .contact-info {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: 40px;
+    background-color: #ecf0f1;
+    padding: 20px;
+    border-radius: 10px;
+  }
+
+  .contact-info strong {
+    color: #2c3e50;
+  }
+
+  .legal-title::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 3px;
+    background-color: #3498db;
+    margin: 10px auto;
+  }
+</style>
+
+<div class="container legal-container">
+  <h1 class="legal-title">Legal Information</h1>
+  <p class="text-center text-muted">Last Updated: 10/15/2024</p>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">1. DISCLAIMER OF FINANCIAL ADVICE</h2>
+    <p class="legal-text">
+      The content, tools, and features provided on this website, including but not limited to the trading simulator, educational materials, and any other information, are intended for educational and informational purposes only. Nothing on this website constitutes or should be construed as professional financial, investment, or legal advice. The creators and operators of this website are not licensed financial advisors, brokers, or legal professionals. You are solely responsible for your own financial decisions, and you should consult a licensed financial advisor before engaging in any trading activity or investment strategy.
+    </p>
+    <p class="legal-text">
+      By using this website, you acknowledge and agree that no information or material provided here constitutes a recommendation, solicitation, or offer to buy or sell any securities, commodities, or other financial instruments. All information is provided “as-is” without any warranty or guarantee of accuracy, reliability, or future performance.
+    </p>
+  </div>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">2. SIMULATED PERFORMANCE DISCLAIMER</h2>
+    <p class="legal-text">
+      The trading simulator provided on this website is intended solely for the purpose of simulation and educational training. The trading simulator utilizes hypothetical performance results, which do not reflect actual trading results in real-time financial markets. Past simulated performance is not indicative of future results, and simulated performance inherently contains limitations, such as not accounting for real-world market conditions, liquidity, slippage, delays, or the emotional impacts of actual financial loss.
+    </p>
+    <p class="legal-text">
+      It is important to understand that simulated trading may differ significantly from actual trading. Use of this simulator does not guarantee successful trading outcomes or profits in real-world trading environments. Any results generated from simulated trading are for illustrative purposes only.
+    </p>
+  </div>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">3. NO GUARANTEE OF RESULTS</h2>
+    <p class="legal-text">
+      This website and its creators make no representations, warranties, or guarantees regarding the success or profitability of any user utilizing the information, strategies, or tools available on the website. Trading and investing in financial markets involves substantial risk, including the potential for loss of principal. The user bears full responsibility for their own financial decisions. The creators and operators of this website are not responsible for any losses incurred from using this website or any information provided therein.
+    </p>
+  </div>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">4. TERMS AND CONDITIONS</h2>
+    <h3 class="legal-subsection-title">4.1 User Conduct</h3>
+    <p class="legal-text">
+      By accessing and using this website, you agree to abide by all applicable laws and regulations. You also agree not to use the website for any unlawful or unauthorized purpose, including but not limited to violating intellectual property rights, engaging in fraudulent activities, or compromising the security of the website.
+    </p>
+
+    <h3 class="legal-subsection-title">4.2 Account Registration</h3>
+    <p class="legal-text">
+      To use certain features of this website, including the trading simulator, users are required to register an account using a valid email address and password. By registering, you agree to provide accurate and truthful information and to keep your login credentials confidential. The website operators are not responsible for any unauthorized access to your account caused by the misuse or disclosure of your credentials.
+    </p>
+
+    <h3 class="legal-subsection-title">4.3 Limitation of Liability</h3>
+    <p class="legal-text">
+      To the fullest extent permitted by law, the creators and operators of this website disclaim any liability for damages, including but not limited to direct, indirect, incidental, consequential, or punitive damages arising out of or in connection with your use of this website, the trading simulator, or any information provided herein.
+    </p>
+
+    <h3 class="legal-subsection-title">4.4 Modification of the Terms</h3>
+    <p class="legal-text">
+      The creators and operators of this website reserve the right to modify these terms and conditions at any time without notice. Continued use of the website after such modifications constitute acceptance of the updated terms.
+    </p>
+  </div>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">5. PRIVACY POLICY</h2>
+    <h3 class="legal-subsection-title">5.1 Data Collection</h3>
+    <p class="legal-text">
+      This website collects only the minimal amount of personal information necessary to facilitate user account creation and access, limited to the user's email address and password. No other personal information is collected, processed, or stored.
+    </p>
+
+    <h3 class="legal-subsection-title">5.2 Use of Data</h3>
+    <p class="legal-text">
+      The email address provided during registration will only be used for purposes directly related to account management, including password resets and essential communication regarding the services provided on this website. We do not sell, share, or otherwise distribute personal information to third parties, except as required by law or to protect the rights and security of the website and its users.
+    </p>
+
+    <h3 class="legal-subsection-title">5.3 Data Security</h3>
+    <p class="legal-text">
+      We take reasonable steps to protect the personal information you provide. However, no method of data transmission or storage is completely secure. While we strive to protect your personal information, we cannot guarantee absolute security.
+    </p>
+
+    <h3 class="legal-subsection-title">5.4 Cookies</h3>
+    <p class="legal-text">
+      This website may use cookies or similar technologies to enhance the user experience and gather usage analytics. You can disable cookies in your browser settings; however, doing so may affect the functionality of the website.
+    </p>
+
+    <h3 class="legal-subsection-title">5.5 Data Retention</h3>
+    <p class="legal-text">
+      We retain user data for as long as is necessary to fulfill the purposes for which it was collected, or as required by law. If a user wishes to delete their account and personal information, they may contact us at [Insert Contact Information], and we will comply with such requests, except where retention is required by law.
+    </p>
+  </div>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">6. GOVERNING LAW</h2>
+    <p class="legal-text">
+      These Terms and Conditions, along with the Privacy Policy and Disclaimer, are governed by and construed in accordance with the laws of the United States of America. Any disputes arising out of or related to the use of this website shall be subject to the exclusive jurisdiction of the courts located in the United States of America.
+    </p>
+  </div>
+
+  <div class="legal-section">
+    <h2 class="legal-subtitle">7. CONTACT INFORMATION</h2>
+    <p class="legal-text">
+      For any questions regarding these legal terms, privacy policy, or to request the deletion of personal information, please contact us at:
+    </p>
+    <p class="legal-text text-center">
+      <strong>Email:</strong> lemonadechains@gmail.com
+    </p>
+  </div>
+</div>
+{% endblock %}

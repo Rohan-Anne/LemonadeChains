@@ -5,80 +5,9 @@
     <title>Options Detail</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f4f7fc;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-    
-        h1, h3 {
-    color: #2c3e50;
-    margin-bottom: 30px;
-    font-weight: 600;
-    font-size: 28px; /* Increase the font size for the title */
-    text-align: left;
-    width: 100%;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0px auto;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
-}
-
-        .table-container { margin-top: 0px;}
-        .filter-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px; /* Add space between filter groups */
-    margin-top: 20px; /* Add space between the title and filters */
-}
-.filter-group {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Minimize Button Styling */
-#minimizeStrategyBtn {
-    display: block;
-    margin-bottom: 10px;
-}
-
-/* Minimized Tab Styling */
-.minimized-tab {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #3498db;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Hidden Class */
-.hidden {
-    display: none;
-}
-
-
-
-
-.filter-group label {
-    margin-bottom: 8px; /* Space between label and input */
-    font-size: 14px;
-    font-weight: 500;
-    color: #2c3e50;
-}
-
+        .table-container { margin-top: 20px; width: calc(75%);}
+        .filter-container { margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        .filter-group { margin-bottom: 10px; }
         .graph-and-details-container { display: flex; margin-top: 10px; justify-content: center; }
         .graph-container { flex: 2; margin-right: 10px; height: 600px; width: 60%; display: none; text-align: center; }
         .details-table {  
@@ -97,32 +26,15 @@
             padding: 10px;
             box-sizing: border-box;
         }
-        
         .glow {
-    box-shadow: 0 0 15px #00ff00;
-    transition: box-shadow 0.3s ease;
-}
-
+            box-shadow: 0 0 15px #00ff00;  /* Glowing green */
+        }
         table {
-            width: auto !important;
+            width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-
-        .filter-group:last-child {
-    margin-right: 0;
-}
-
-.form-control {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 16px;
-}
-        
-        th, td, tbody {
+        table, th, td {
             border: 1px solid black;
             padding: 10px;
             text-align: left;
@@ -130,9 +42,8 @@
 
         /* Responsive layout when strategy builder is present */
         .main-content {
-            width: 100%; /* Adjust width to make room for the strategy builder */
-            display: flex;
-            flex-wrap: wrap;
+            width: 70%; /* Adjust width to make room for the strategy builder */
+            display: inline-block;
             vertical-align: top;
             margin-top: 60px;
         }
@@ -153,72 +64,6 @@
         .strategy-container.hidden {
             display: none;
         }
-
-        button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 18px;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.3s ease;
-}
-
-button:hover {
-    background-color: #2980b9;
-}
-
-button.btn-primary {
-    background-color: #2980b9;
-}
-
-button.btn-success {
-    background-color: #27ae60;
-}
-
-button.btn-danger {
-    background-color: #e74c3c;
-}
-
-button.btn-secondary {
-    background-color: #7f8c8d;
-}
-
-.table-container {
-    margin-top: 30px;
-}
-
-
-@media (max-width: 768px) {
-    .filter-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .filter-group {
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
-
-    .graph-container {
-        width: 100%;
-        height: 400px;
-    }
-
-    .strategy-container {
-        position: relative;
-        width: 100%;
-        border-left: none;
-        box-shadow: none;
-        border-radius: 0;
-    }
-
-    h1 {
-        font-size: 24px; /* Smaller font on mobile */
-    }
-
-}
-
         
     </style>
 </head>
@@ -234,30 +79,30 @@ button.btn-secondary {
         
         <!-- Filter Section -->
         <div class="filter-container">
-            <div class="filter-group">
-                <label for="expiration-date">Expiration Date:</label>
-                <select id="expiration-date" class="form-control">
-                    {% for date in expiration_dates %}
-                    <option value="{{ date }}">{{ date }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="strike-range">Strike Price Range:</label>
-                <input type="number" id="strike-min" class="form-control" placeholder="Min Strike">
-                <input type="number" id="strike-max" class="form-control" placeholder="Max Strike">
-            </div>
-            <div class="filter-group">
-                <label for="option-type">Option Type:</label>
-                <select id="option-type" class="form-control">
-                    <option value="both">Both</option>
-                    <option value="call">Calls</option>
-                    <option value="put">Puts</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <button id="apply-filters" class="btn btn-primary">Apply Filters</button>
-            </div>
+          <div class="filter-group">
+            <label for="expiration-date">Expiration Date:</label>
+            <select id="expiration-date" class="form-control">
+              {% for date in expiration_dates %}
+                <option value="{{ date }}">{{ date }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="strike-range">Strike Price Range:</label>
+            <input type="number" id="strike-min" class="form-control" placeholder="Min Strike">
+            <input type="number" id="strike-max" class="form-control" placeholder="Max Strike">
+          </div>
+          <div class="filter-group">
+            <label for="option-type">Option Type:</label>
+            <select id="option-type" class="form-control">
+              <option value="both">Both</option>
+              <option value="call">Calls</option>
+              <option value="put">Puts</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <button id="apply-filters" class="btn btn-primary">Apply Filters</button>
+          </div>
         </div>
 
         <!-- Calls Options Table -->
@@ -333,8 +178,7 @@ button.btn-secondary {
       </div>
 
       <!-- Strategy Builder -->
-    <div class="strategy-container hidden" id="strategyContainer">
-        <button id="minimizeStrategyBtn" class="btn btn-secondary" onclick="minimizeStrategy()">Minimize</button>
+      <div class="strategy-container hidden" id="strategyContainer">
         <h4>Strategy Details</h4>
 
         <div class="form-group">
@@ -343,16 +187,17 @@ button.btn-secondary {
         </div>
 
         <table class="strategy-details-table">
-            <tr><td><strong>Max Profit:</strong></td><td class="strategy-max-profit"></td></tr>
-            <tr><td><strong>Max Loss:</strong></td><td class="strategy-max-loss"></td></tr>
-            <tr><td><strong>Breakeven Stock Prices:</strong></td><td class="strategy-breakeven-prices"></td></tr>
-            <tr><td><strong>Current Stock Price:</strong></td><td class="strategy-current-stock-price">Hover over graph</td></tr>
+          <tr><td><strong>Max Profit:</strong></td><td class="strategy-max-profit"></td></tr>
+          <tr><td><strong>Max Loss:</strong></td><td class="strategy-max-loss"></td></tr>
+          <tr><td><strong>Breakeven Stock Prices:</strong></td><td class="strategy-breakeven-prices"></td></tr>
+          <tr><td><strong>Current Stock Price:</strong></td><td class="strategy-current-stock-price">Hover over graph</td></tr>
         </table>
 
         <div id="strategyGraph" style="width: 100%; height: 300px; margin-top: 20px;"></div>
 
         <button id="buyStrategyBtn" class="btn btn-success" onclick="buyStrategy()">Buy Strategy</button>
 
+        <!-- List of Contracts in Strategy -->
         <h5>Contracts in Strategy:</h5>
         <table id="strategyContractsTable" style="width:100%; margin-top: 10px;">
             <thead>
@@ -364,47 +209,29 @@ button.btn-secondary {
             </tr>
             </thead>
             <tbody id="strategyContractsBody">
-            <!-- Contracts will be added here dynamically -->
+        <!-- Contracts will be added here dynamically -->
             </tbody>
         </table>
+
+        <!-- Buy Strategy Button -->
+      </div>
     </div>
 
-    <!-- Minimized Strategy Builder Tab -->
-    <div class="minimized-tab hidden" id="minimizedStrategyTab" onclick="expandStrategy()">Expand Strategy Builder</div>
-
+        
 
     <script>
       let strategy = [];  // This will store the contracts added to the strategy
       let addedContracts = new Set();  // Store added contract symbols to track toggles
 
-      // Minimize the strategy builder
-function minimizeStrategy() {
-    document.getElementById('strategyContainer').classList.add('hidden');
-    document.getElementById('minimizedStrategyTab').classList.remove('hidden');
-}
-
-// Expand the strategy builder from the minimized tab
-function expandStrategy() {
-    document.getElementById('strategyContainer').classList.remove('hidden');
-    document.getElementById('minimizedStrategyTab').classList.add('hidden');
-}
-
-
-        
-
-
       function toggleStrategyVisibility(show) {
           const strategyContainer = document.getElementById('strategyContainer');
           const mainContent = document.querySelector('.main-content');
-          const minimizedTab = document.getElementById('minimizedStrategyTab');
           
           if (show) {
               strategyContainer.classList.remove('hidden');
-              minimizedTab.classList.add('hidden');
               mainContent.style.width = '70%';  // Adjust main content width when strategy builder is shown
           } else {
               strategyContainer.classList.add('hidden');
-              minimizedTab.classList.add('hidden');
               mainContent.style.width = '100%'; // Full width when strategy builder is hidden
           }
       }
@@ -455,18 +282,6 @@ function expandStrategy() {
             strike_price_range: strikeMin && strikeMax ? [parseFloat(strikeMin), parseFloat(strikeMax)] : null,
             option_type: optionType
         };
-
-        strategy = [];  // Clear the strategy array
-        addedContracts.clear();  // Clear the added contracts set
-
-        // Update the strategy contracts table (which will now be empty)
-        updateStrategyContractsTable();
-
-        // Hide the strategy builder since there are no contracts
-        toggleStrategyVisibility(false);
-
-        // Clear the strategy name input field
-        document.getElementById('strategy-name').value = '';
 
         fetch('/get_options_data', {
             method: 'POST',
@@ -576,56 +391,42 @@ function expandStrategy() {
       }
 
       function buyStrategy() {
-    const strategyName = document.getElementById('strategy-name').value;
+        
+        const strategyName = document.getElementById('strategy-name').value;
 
-    if (!strategyName) {
-        alert('Please enter a name for your strategy.');
-        return;
-    }
-
-    const strategyData = strategy.map(contract => ({
-        contract: contract.contractSymbol,
-        strike: contract.strike,
-        expiration: contract.expiration,
-        option_type: contract.optionType,
-        action: 'buy',  // Assuming we are only buying strategies
-    }));
-
-    // Add the strategy as a whole to the cart
-    fetch('/add_to_cart', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ strategy: strategyData, name: strategyName, type: 'strategy' })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Strategy added to cart successfully!');
-
-            // Reset the strategy after successful purchase
-            strategy = [];  // Clear the strategy array
-            addedContracts.clear();  // Clear the added contracts set
-
-            // Update the strategy contracts table (which will now be empty)
-            updateStrategyContractsTable();
-
-            // Hide the strategy builder since there are no contracts
-            toggleStrategyVisibility(false);
-
-            // Clear the strategy name input field
-            document.getElementById('strategy-name').value = '';
-
-        } else {
-            alert('Failed to add strategy to cart.');
+        if (!strategyName) {
+            alert('Please enter a name for your strategy.');
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error adding strategy to cart:', error);
-    });
-}
+    
+        const strategyData = strategy.map(contract => ({
+            contract: contract.contractSymbol,
+            strike: contract.strike,
+            expiration: contract.expiration,
+            option_type: contract.optionType,
+            action: 'buy',  // Assuming we are only buying strategies
+        }));
 
+        // Add the strategy as a whole to the cart
+        fetch('/add_to_cart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ strategy: strategyData, name: strategyName, type: 'strategy'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Strategy added to cart successfully!');
+            } else {
+                alert('Failed to add strategy to cart.');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding strategy to cart:', error);
+        });
+    }
 
       function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
         console.log(`Toggle graph clicked for: ${ticker} ${strike} ${type} ${expiration}`); 
@@ -736,7 +537,6 @@ function updateStrategyGraph() {
         return;
     }
 
-    toggleStrategyVisibility(true);
     console.log(strategy);
 
     fetch('/get_combined_strategy_profit_data', {
@@ -850,25 +650,10 @@ function updateStrategyGraph() {
       document.addEventListener('DOMContentLoaded', function() {
           document.getElementById('apply-filters').click();  // Automatically apply filters on page load
       });
-
-
-
     </script>
     {% endblock %}
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

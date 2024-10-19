@@ -42,7 +42,7 @@
             <a class="nav-link" href="/lemonadelearn">LemonadeLearn</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Mission</a>
+            <a class="nav-link" href="/legal">Legal Information</a>
           </li>
         </ul>
         {% if 'user_id' in session %}
@@ -52,8 +52,6 @@
                 {{ session['name'] }}
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#">Profile</a></li>
-                <li><a class="dropdown-item" href="#">Settings</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('view_cart') }}">Cart</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>

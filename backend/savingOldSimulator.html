@@ -8,15 +8,11 @@
   :root {
     --primary-color: #3498db;
     --secondary-color: #8e44ad;
-    --light-gray: #f8f9fa;
-    --hover-gray: #f1f1f1;
-    --dark-gray: #6c757d;
-    --danger-color: #e74c3c;
   }
 
   /* General page styling */
   .navbar-custom {
-    background-color: var(--light-gray);
+    background-color: #f8f9fa;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   .hero-section {
@@ -25,12 +21,11 @@
     padding: 50px 0;
   }
   .card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1);
     margin-bottom: 20px;
-    border-radius: 8px;
   }
   .card-header {
-    background-color: var(--light-gray);
+    background-color: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
   }
   .chart-placeholder {
@@ -39,31 +34,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--dark-gray);
+    color: #6c757d;
     font-size: 1.2rem;
+  }
+  .watchlist-scroll, .news-scroll {
+    max-height: 600px; /* Adjusted for the vertical watchlist */
+    overflow-y: auto;
   }
   .btn-custom {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   .btn-custom:hover {
     background-color: var(--secondary-color);
     border-color: var(--secondary-color);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     color: white;
-  }
-  .btn-outline-light:hover {
-    background-color: white;
-    color: var(--secondary-color);
-  }
-  .btn-danger:hover {
-    background-color: var(--danger-color);
-    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.5);
-  }
-  .btn-secondary:hover {
-    background-color: var(--hover-gray);
   }
 
   /* Enhanced search bar styling */
@@ -78,7 +64,6 @@
     border-radius: 50px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     font-size: 16px;
-    transition: box-shadow 0.3s ease, border-color 0.3s ease;
   }
   .search-bar:focus {
     border-color: var(--primary-color);
@@ -103,15 +88,15 @@
     padding: 10px 20px;
   }
   .list-group-item:hover {
-    background-color: var(--hover-gray);
+    background-color: #f1f1f1;
   }
 
   /* Watchlist styling */
   .watchlist-container {
-    background-color: var(--light-gray);
+    background-color: #f8f9fa;
     padding: 10px;
     border-radius: 8px;
-    height: 100%;
+    height: 100%; /* Ensure the watchlist takes full height */
   }
   .watchlist-title {
     font-size: 18px;
@@ -127,10 +112,9 @@
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
   }
   .watchlist-item:hover {
-    background-color: var(--hover-gray);
+    background-color: #f8f9fa;
   }
   .stock-info {
     display: flex;
@@ -145,33 +129,17 @@
     width: 100px;
     height: 50px;
   }
-
-  /* Responsive enhancements */
-  @media (max-width: 768px) {
-    .hero-section {
-      padding: 20px 0;
-    }
-    .btn-lg {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    .watchlist-item {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .stock-info {
-      margin-bottom: 10px;
-    }
-  }
 </style>
 
+
+
 <header class="hero-section">
-  <div class="container text-center">
+  <div class="container">
     <h1 class="display-4">{{ session['name'] }}, Welcome Back!</h1>
     <div class="mt-3">
       <h2 class="h4">Total Portfolio Value: ${{ "{:,.2f}".format(portfolio_value) }}</h2>
       <h2 class="h4">Buying Power Available: ${{ "{:,.2f}".format(session['balance']) }}</h2>
-    </div>
+  </div>
     <div class="mt-4">
       <a href="#" class="btn btn-light btn-lg me-2">Simulator</a>
       <a href="#" class="btn btn-outline-light btn-lg">LemonadeLearn</a>
@@ -189,9 +157,14 @@
 </div>
 
 <main class="container my-5">
+
+
   <template id="expandable-template">
     <div class="graph-and-details-container">
+      <!-- Graph Container -->
       <div class="graph-container"></div>
+  
+      <!-- Individual Option Details Table -->
       <div class="details-table">
         <h4>Details</h4>
         <table>
@@ -205,96 +178,111 @@
   </template>
 
   <div class="row">
+    <!-- Left Column for Market Overview and Search -->
     <div class="col-lg-8">
+      <!-- Enhanced Search bar for finding stocks/tickers -->
       <div class="search-bar-container">
         <input type="text" id="search-bar" class="search-bar" placeholder="Search for stocks or tickers...">
         <ul id="search-results" class="list-group search-results-container" style="display: none;"></ul>
       </div>
-    
-      <div class="card mt-4">
-        <div class="card-header">
-          <h2 class="card-title h5 mb-0">Stock Positions</h2>
-        </div>
-        <div class="card-body">
-          {% if stockpositions %}
-            {% for ticker, position in stockpositions.items() %}
-            <div class="stock-info mb-3">
-              <h5>{{ position['ticker'] }} - {{ position['quantity'] }} shares</h5>
-              <div>
-                <input type="number" id="sell-quantity-{{ position['ticker'] }}" placeholder="Quantity to sell" min="1" max="{{ position['quantity'] }}">
-                <button class="btn btn-danger" onclick="sellStock('{{ position['ticker'] }}', {{ position['quantity'] }})">Sell</button>
-              </div>
-              <div id="mini-chart-{{ position['ticker'] }}" class="tv-widget-mini"></div>
-            </div>
-            {% endfor %}
-          {% else %}
-            <p>No stock positions available.</p>
-          {% endif %}
-        </div>
-      </div>
-    
-      <div class="card mt-4">
-        <div class="card-header">
-          <h2 class="card-title h5 mb-0">Options Positions</h2>
-        </div>
-        <div class="card-body">
-          {% if positions %}
-            {% for key, option in positions.items() %}
-            <div class="option-info mb-3">
-              <h5>{{ option['ticker'] }} - {{ option['option_type'].capitalize() }} - Strike: {{ option['strike_price'] }} - Expiry: {{ option['expiration_date'] }} - Quantity: {{ option['quantity'] }}</h5>
-              <input type="number" id="sell-quantity-{{ option['ticker'] }}-{{ option['strike_price'] }}" min="1" max="{{ option['quantity'] }}" value="1">
-              <button class="btn btn-danger" onclick="sellOption('{{ option['ticker'] }}', {{ option['strike_price'] }}, '{{ option['option_type'] }}', '{{ option['expiration_date'] }}', {{ option['quantity'] }})">Sell</button>
-              <button class="btn btn-secondary" onclick="toggleProfitGraph(this, '{{ option.ticker }}', {{ option.strike_price }}, '{{ option.option_type }}', '{{ option.expiration_date }}', 'profit-chart-{{ option.ticker }}-{{ option.strike_price }}')">Toggle Graph</button>
-              <div id="profit-chart-{{ option['ticker'] }}-{{ option['strike_price'] }}"></div>
-            </div>
-            {% endfor %}
-          {% else %}
-            <p>No options positions available.</p>
-          {% endif %}
-        </div>
-      </div>
 
-      <div class="card mt-4">
-        <div class="card-header">
-          <h2 class="card-title h5 mb-0">Strategies</h2>
-        </div>
-        <div class="card-body">
-          {% if strategies %}
-            {% for strategy in strategies %}
-            <div class="strategy-info mb-4">
-              <h5>{{ strategy.name }}</h5>
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Contract</th>
-                    <th>Strike</th>
-                    <th>Option Type</th>
-                    <th>Expiration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for contract in strategy.contracts %}
-                  <tr>
-                    <td>{{ contract.contract }}</td>
-                    <td>{{ contract.strike }}</td>
-                    <td>{{ contract.option_type }}</td>
-                    <td>{{ contract.expiration }}</td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-              <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, '{{ strategy.name }}', 'strategy-chart-{{ strategy.name }}')">Toggle Graph</button>
-              <button class="btn btn-danger" onclick="sellStrategy('{{ strategy.name }}')">Sell Strategy</button>
-              <div id="strategy-chart-{{ strategy.name }}"></div>
+    
+    <!-- Stock Positions Section -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h2 class="card-title h5 mb-0">Stock Positions</h2>
+      </div>
+      <div class="card-body">
+        {% if stockpositions %}
+          {% for ticker, position in stockpositions.items() %}
+          <div class="stock-info mb-3">
+            <h5>{{ position['ticker'] }} - {{ position['quantity'] }} shares</h5>
+            <div>
+              <input type="number" id="sell-quantity-{{ position['ticker'] }}" placeholder="Quantity to sell" min="1" max="{{ position['quantity'] }}">
+              <button class="btn btn-danger" onclick="sellStock('{{ position['ticker'] }}', {{ position['quantity'] }})">Sell</button>
             </div>
-            {% endfor %}
-          {% else %}
-            <p>No strategies available.</p>
-          {% endif %}
-        </div>
+            <div id="mini-chart-{{ position['ticker'] }}" class="tv-widget-mini"></div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p>No stock positions available.</p>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Options Positions Section -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h2 class="card-title h5 mb-0">Options Positions</h2>
+      </div>
+      <div class="card-body">
+        {% if positions %}
+          {% for key, option in positions.items() %}
+          <div class="option-info mb-3">
+            <h5>{{ option['ticker'] }} - {{ option['option_type'].capitalize() }} - Strike: {{ option['strike_price'] }} - Expiry: {{ option['expiration_date'] }} - Quantity: {{ option['quantity'] }}</h5>
+            <input type="number" id="sell-quantity-{{ option['ticker'] }}-{{ option['strike_price'] }}" min="1" max="{{ option['quantity'] }}" value="1">
+            <button class="btn btn-danger" onclick="sellOption('{{ option['ticker'] }}', {{ option['strike_price'] }}, '{{ option['option_type'] }}', '{{ option['expiration_date'] }}', {{ option['quantity'] }})">Sell</button>
+            <button class="btn btn-secondary" onclick="toggleProfitGraph(this, '{{ option.ticker }}', {{ option.strike_price }}, '{{ option.option_type }}', '{{ option.expiration_date }}', 'profit-chart-{{ option.ticker }}-{{ option.strike_price }}')">Toggle Graph</button>
+            <div id="profit-chart-{{ option['ticker'] }}-{{ option['strike_price'] }}"></div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p>No options positions available.</p>
+        {% endif %}
       </div>
     </div>
 
+    <!-- Strategies Section -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h2 class="card-title h5 mb-0">Strategies</h2>
+      </div>
+      <div class="card-body">
+        {% if strategies %}
+          {% for strategy in strategies %}
+          <div class="strategy-info mb-4">
+            <h5>{{ strategy.name }}</h5>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Contract</th>
+                  <th>Strike</th>
+                  <th>Option Type</th>
+                  <th>Expiration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for contract in strategy.contracts %}
+                <tr>
+                  <td>{{ contract.contract }}</td>
+                  <td>{{ contract.strike }}</td>
+                  <td>{{ contract.option_type }}</td>
+                  <td>{{ contract.expiration }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <!-- Toggle Graph Button -->
+            <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, '{{ strategy.name }}', 'strategy-chart-{{ strategy.name }}')">Toggle Graph</button>
+
+            <!-- Sell Strategy Button -->
+            <button class="btn btn-danger" onclick="sellStrategy('{{ strategy.name }}')">Sell Strategy</button>
+
+            
+            <!-- Div to hold the chart for the strategy -->
+            <div id="strategy-chart-{{ strategy.name }}"></div>
+
+          </div>
+          {% endfor %}
+        {% else %}
+          <p>No strategies available.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+    <!-- Right Column for Watchlist -->
     <div class="col-lg-4">
       <div class="card watchlist-container">
         <div class="card-header">
@@ -305,8 +293,11 @@
             {% for ticker in watchlist %}
             <li class="list-group-item watchlist-item">
               <div class="stock-info">
-                <a href="{{ url_for('stock_detail', ticker=ticker) }}" class="stock-link">{{ ticker }}</a>
-                <div class="stock-price" id="price-{{ ticker }}"></div>
+                <a href="{{ url_for('stock_detail', ticker=ticker) }}" class="stock-link">
+                 <div>{{ ticker }}</div>
+                </a>
+                 <div class="stock-price" id="price-{{ ticker }}"></div>
+                
               </div>
               <div class="chart-container">
                 <canvas id="chart-{{ ticker }}"></canvas>
@@ -318,12 +309,19 @@
       </div>
     </div>
   </div>
+
+  <div class="text-center mt-5">
+    <a href="#" class="btn btn-custom me-2">Go to Newsroom</a>
+    <a href="#" class="btn btn-outline-secondary">Learn About Our Mission</a>
+  </div>
 </main>
+
 
 <!-- Include Chart.js for the stock growth charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Add Plotly.js library -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 
 <script>
   // Fetch and update stock prices dynamically
@@ -341,43 +339,37 @@
   }
 
 
+  // Fetch portfolio history and plot it
   function fetchPortfolioHistory() {
     fetch('/get_portfolio_history')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success === false) {
-                console.error(data.message);
-                return;
-            }
+      .then(response => response.json())
+      .then(data => {
+        if (data.success === false) {
+          console.error(data.message);
+          return;
+        }
 
-            const timestamps = data.timestamps;
-            const portfolioValues = data.portfolio_values;
+        const timestamps = data.timestamps;
+        const portfolioValues = data.portfolio_values;
 
-            // Convert timestamps to Date objects for accurate plotting
-            const dates = timestamps.map(ts => new Date(ts));
+        const trace = {
+          x: timestamps,  // X-axis: dates
+          y: portfolioValues,  // Y-axis: portfolio values
+          mode: 'lines+markers',
+          name: 'Portfolio Value'
+        };
 
-            const trace = {
-                x: dates,  // X-axis: full timestamps (Date objects)
-                y: portfolioValues,  // Y-axis: portfolio values
-                mode: 'lines+markers',
-                name: 'Portfolio Value'
-            };
+        const layout = {
+          title: 'Portfolio Value Over Time',
+          xaxis: { title: 'Date' },
+          yaxis: { title: 'Portfolio Value ($)' },
+          height: 400
+        };
 
-            const layout = {
-                title: 'Portfolio Value Over Time',
-                xaxis: {
-                    title: 'Date',
-                    tickformat: '%Y-%m-%d %H:%M:%S',  // Ensure time is shown in X-axis
-                    type: 'date'  // Make sure X-axis is treated as time
-                },
-                yaxis: { title: 'Portfolio Value ($)' },
-                height: 400
-            };
-
-            Plotly.newPlot('portfolio-history-chart', [trace], layout);
-        })
-        .catch(error => console.error('Error fetching portfolio history:', error));
-}
+        Plotly.newPlot('portfolio-history-chart', [trace], layout);
+      })
+      .catch(error => console.error('Error fetching portfolio history:', error));
+  }
 
   // Fetch and plot portfolio history when the page loads
   document.addEventListener('DOMContentLoaded', fetchPortfolioHistory);

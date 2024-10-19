@@ -18,6 +18,7 @@
   .card {
     box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1);
     margin-bottom: 20px;
+    border-radius: 8px;
   }
   .card-header {
     background-color: #f8f9fa;
@@ -27,11 +28,13 @@
     background-color: #3498db;
     border-color: #3498db;
     color: white;
+    transition: all 0.3s ease;
   }
   .btn-custom:hover {
     background-color: #8e44ad;
     border-color: #8e44ad;
     color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   .btn-danger-custom {
     background-color: #e74c3c;
@@ -144,8 +147,27 @@
           <!-- Remove from Watchlist Button -->
           <button class="btn btn-danger-custom mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
 
-          <!-- New Options Data Button -->
+          <!-- View Options Contracts Button -->
           <a class="btn btn-custom mt-4" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Contracts</a>
+
+          <!-- Buy/Sell Form Section for ETF -->
+          <div class="trade-forms mt-4">
+            <form class="trade-form" onsubmit="addToCart('{{ ticker }}', 'buy', event)">
+              <div class="form-group">
+                <label for="buy-quantity">Buy Quantity:</label>
+                <input type="number" id="buy-quantity" class="form-control" placeholder="Enter quantity" required>
+              </div>
+              <button type="submit" class="btn btn-success">Buy in Cart</button>
+            </form>
+
+            <form class="trade-form" onsubmit="addToCart('{{ ticker }}', 'sell', event)">
+              <div class="form-group">
+                <label for="sell-quantity">Sell Quantity:</label>
+                <input type="number" id="sell-quantity" class="form-control" placeholder="Enter quantity" required>
+              </div>
+              <button type="submit" class="btn btn-danger">Sell in Cart</button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -204,6 +226,7 @@
     });
   }
 
+  // Function to update ETF current price
   function updateCurrentPrice(ticker) {
     fetch(`/get_stock_price?ticker=${ticker}`)
       .then(response => response.json())
@@ -218,13 +241,84 @@
     loadTradingViewChart('{{ ticker }}');  // Load the main TradingView chart for the ETF
     updateCurrentPrice('{{ ticker }}');
     setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);  // Update current price every 30 seconds
+    loadWatchlistCharts();  // Load mini charts for the watchlist
   });
+
+  // Load mini TradingView charts for the watchlist
+  function loadWatchlistCharts() {
+    const watchlistItems = document.querySelectorAll('.list-group-item.watchlist-item');
+    const observer = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const ticker = entry.target.id.replace('watchlist-item-', '');
+          loadMiniChart(ticker);  // Load TradingView mini chart
+          observer.unobserve(entry.target);  // Stop observing once it's loaded
+        }
+      });
+    });
+
+    watchlistItems.forEach(item => observer.observe(item));  // Observe each watchlist item
+  }
+
+  // Load mini chart for individual watchlist items
+  function loadMiniChart(ticker) {
+    new TradingView.widget({
+      "container_id": `mini-chart-${ticker}`,
+      "symbol": ticker,
+      "width": "100%",
+      "height": "130",  /* Increased height for better readability */
+      "locale": "en",
+      "dateRange": "1M",
+      "colorTheme": "light",
+      "trendLineColor": "#37a6ef",
+      "underLineColor": "rgba(55, 166, 239, 0.15)",
+      "isTransparent": true,
+      "autosize": true,
+      "largeChartUrl": ""
+    });
+  }
+
+  // Function to toggle description
+  function toggleDescription() {
+    const description = document.getElementById('description');
+    const showMore = document.getElementById('show-more');
+
+    if (description.classList.contains('expanded')) {
+      description.classList.remove('expanded');
+      showMore.textContent = 'Show More';
+    } else {
+      description.classList.add('expanded');
+      showMore.textContent = 'Show Less';
+    }
+  }
+
+  // Function to add ETF to cart (buy/sell)
+  function addToCart(ticker, action, event) {
+    event.preventDefault();
+    const quantity = action === 'buy' ? document.getElementById('buy-quantity').value : document.getElementById('sell-quantity').value;
+
+    const cartItem = {
+        type: 'etf',
+        contract: ticker,
+        action: action,
+        quantity: quantity
+    };
+
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cartItem)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Item added to cart');
+        } else {
+            alert('Error adding to cart');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+  }
 </script>
 
 {% endblock %}
-
-
-
-
-
-

@@ -3,118 +3,7 @@
 {% block title %}Cart{% endblock %}
 
 {% block content %}
-<style>
-  /* General Container Styling */
-  .cart-container {
-    margin-top: 50px;
-    padding-bottom: 50px;
-  }
-
-  /* Cart Title */
-  .cart-container h1 {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin-bottom: 30px;
-    text-align: center;
-    color: #2c3e50;
-  }
-
-  /* Table Styling */
-  .table {
-    width: 100%;
-    margin-bottom: 1rem;
-    color: #212529;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .table th {
-    background-color: #2980b9;
-    color: white;
-    text-align: center;
-    font-size: 1.1rem;
-    font-weight: bold;
-  }
-
-  .table td {
-    text-align: center;
-    vertical-align: middle;
-    font-size: 1rem;
-    color: #555;
-  }
-
-  /* Stripe the table rows for better readability */
-  .table-striped tbody tr:nth-of-type(odd) {
-    background-color: #f8f9fa;
-  }
-
-  /* Remove Button Styling */
-  .btn-danger {
-    background-color: #e74c3c;
-    border: none;
-    font-size: 0.9rem;
-    padding: 8px 12px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-  }
-
-  .btn-danger:hover {
-    background-color: #c0392b;
-  }
-
-  /* Confirm Trades Button */
-  .confirm-btn {
-    display: block;
-    width: 100%;
-    max-width: 250px;
-    margin: 40px auto 0;
-    padding: 12px 20px;
-    background-color: #3498db;
-    border: none;
-    color: white;
-    font-size: 1.2rem;
-    border-radius: 50px;
-    transition: background-color 0.3s ease;
-  }
-
-  .confirm-btn:hover {
-    background-color: #2980b9;
-  }
-
-  /* Strategy Contracts Table */
-  .strategy-contracts-table {
-    margin-top: 20px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .strategy-contracts-table th {
-    background-color: #8e44ad;
-    color: white;
-  }
-
-  .strategy-contracts-table td {
-    color: #555;
-  }
-
-  /* Contracts in Strategy Header */
-  h5 {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 10px;
-    text-align: center;
-  }
-
-  /* Hover effect on table rows */
-  .table tbody tr:hover {
-    background-color: #e0f7fa;
-  }
-</style>
-
-<div class="container cart-container">
+<div class="container mt-5">
   <h1>Your Cart</h1>
   <table class="table table-striped">
     <thead>
@@ -162,7 +51,7 @@
         <tr>
           <td colspan="7">
             <h5>Contracts in Strategy:</h5>
-            <table class="table table-bordered strategy-contracts-table">
+            <table class="table table-bordered">
               <thead>
                 <tr>
                   <th>Contract Symbol</th>
@@ -188,8 +77,7 @@
       {% endfor %}
     </tbody>
   </table>
-
-  <button class="btn confirm-btn" onclick="confirmTrades()">Confirm Trades</button>
+  <button class="btn btn-primary" onclick="confirmTrades()">Confirm Trades</button>
 </div>
 
 <script>
@@ -245,6 +133,5 @@
   }
 </script>
 {% endblock %}
-
 
 

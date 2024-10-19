@@ -51,12 +51,32 @@ class OptionsManager:
     
     def get_implied_volatility(self, ticker, expiration_date, option_type, strike_price):
         try:
-            expiration_dt = datetime.strptime(expiration_date, "%Y-%m-%d")
-            expiration_date = expiration_dt.strftime("%Y-%m-%d")  # Adjust date format
+            new_expiration = None
+            # Check if expiration_date is a datetime object
+            if isinstance(expiration_date, datetime):
+                # If the time part is 23:59:59, move to the next day
+                if expiration_date.time() == datetime.strptime("23:59:59", "%H:%M:%S").time():
+                    expiration_date += timedelta(days=1)  # Move to the next day
+
+                # Convert to string in the desired format (YYYY-MM-DD)
+                expiration_date = expiration_date.strftime("%Y-%m-%d")
+                new_expiration = expiration_date
+            else:
+                # If it's already a string, attempt to parse it
+                try:
+                    expiration_dt = datetime.strptime(expiration_date, "%Y-%m-%d %H:%M:%S")
+                    if expiration_dt.time() == datetime.strptime("23:59:59", "%H:%M:%S").time():
+                        expiration_dt += timedelta(days=1)  # Move to the next day
+                    expiration_date = expiration_dt.strftime("%Y-%m-%d")  # Convert to string in YYYY-MM-DD format
+                    new_expiration = expiration_date
+                except ValueError:
+                    # If the format is already just a date, keep it as is
+                    expiration_date = datetime.strptime(expiration_date, "%Y-%m-%d").strftime("%Y-%m-%d")
+                    new_expiration = expiration_date
 
             # Fetch the stock option chain for the expiration date
             stock = yf.Ticker(ticker)
-            option_chain = stock.option_chain(expiration_date)
+            option_chain = stock.option_chain(new_expiration)
             
             # Select the correct option type (calls or puts)
             options = option_chain.calls if option_type == 'call' else option_chain.puts
@@ -75,6 +95,7 @@ class OptionsManager:
             return None
 
     def calculateOptionPrice(self, ticker, strike_price, expiration_date, option_type, r):
+
         S = self.getStockPrice(ticker)
         K = strike_price
         T = (pd.to_datetime(expiration_date).replace(tzinfo=None) - pd.Timestamp.now().replace(tzinfo=None)).days / 365.0
