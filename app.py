@@ -47,7 +47,7 @@ firebase_config = {
 }
 
 if 'HEROKU' in os.environ:
-    domain = 'https://your-heroku-app.herokuapp.com'
+    domain = 'https://lemonadechains-38f57839ac55.herokuapp.com/'
 else:
     domain = 'http://127.0.0.1:5000'  # Local development domain
 
