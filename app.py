@@ -49,7 +49,7 @@ GOOGLE_CLIENT_SECRETS_FILE = "authentication_client_secret.json"
 flow = Flow.from_client_secrets_file(
     GOOGLE_CLIENT_SECRETS_FILE,
     scopes=['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'openid'],
-    redirect_uri= 'https://127.0.0.1:5000/callback'
+    redirect_uri= 'https://lemonadechains-38f57839ac55.herokuapp.com/callback'
 )
 
 @app.route('/')
