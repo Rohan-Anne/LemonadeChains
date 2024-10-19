@@ -1690,5 +1690,5 @@ if __name__ == '__main__':
     scheduler.add_job(run_remove_expired_options_and_strategies, trigger='interval', minutes=1)
     scheduler.add_job(run_record_portfolio_value, trigger='interval', minutes=30)
     scheduler.start()
-    app.run(debug=True, ssl_context='adhoc')
+    app.run(ssl_context='adhoc')
  
