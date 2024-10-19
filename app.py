@@ -17,6 +17,7 @@ import re
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
+import os
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
@@ -45,11 +46,17 @@ firebase_config = {
   "measurementId": "G-2TMBXQ8VVB"
 }
 
+if 'HEROKU' in os.environ:
+    domain = 'https://your-heroku-app.herokuapp.com'
+else:
+    domain = 'http://127.0.0.1:5000'  # Local development domain
+
+
 GOOGLE_CLIENT_SECRETS_FILE = "authentication_client_secret.json"
 flow = Flow.from_client_secrets_file(
     GOOGLE_CLIENT_SECRETS_FILE,
     scopes=['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'openid'],
-    redirect_uri= 'https://lemonadechains-38f57839ac55.herokuapp.com/callback'
+    redirect_uri= f'{domain}/callback'
 )
 
 @app.route('/')
