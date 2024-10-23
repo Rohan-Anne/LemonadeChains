@@ -283,9 +283,10 @@
                   {% endfor %}
                 </tbody>
               </table>
-              <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, escapeStrategyName('{{ strategy.name }}'), 'strategy-chart-{{ strategy.name | replace("'", "") }}')">Toggle Graph</button>
-              <button class="btn btn-danger" onclick="sellStrategy(escapeStrategyName('{{ strategy.name }}'))">Sell Strategy</button>
-              <div id="strategy-chart-{{ strategy.name | replace("'", "") }}"></div> <!-- Remove apostrophes from ID -->
+              <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, decodeURIComponent('{{ strategy.name | urlencode }}'), 'strategy-chart-{{ strategy.name }}')">Toggle Graph</button>
+              <button class="btn btn-danger" onclick="sellStrategy(decodeURIComponent('{{ strategy.name | urlencode }}'))">Sell Strategy</button>
+              <div id="strategy-chart-{{ strategy.name }}"></div> <!-- Use original strategy name for ID -->
+
             </div>
             {% endfor %}
           {% else %}
