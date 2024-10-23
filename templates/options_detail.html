@@ -230,13 +230,14 @@ button.btn-secondary {
     {% block title %}Options for {{ ticker }}{% endblock %}
 
     {% block content %}
+    <div class="central-chart-container">
+            <div id="tradingview-chart"></div>
+    </div>
     <div class="container">
       <div class="main-content">
         <h1 class="mt-4">{{ ticker }} Options</h1>
 
-        <div class="central-chart-container">
-            <div id="tradingview-chart"></div>
-        </div>
+        
         
         <!-- Filter Section -->
         <div class="filter-container">
