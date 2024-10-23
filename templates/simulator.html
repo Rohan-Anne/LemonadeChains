@@ -283,6 +283,7 @@
                   {% endfor %}
                 </tbody>
               </table>
+              <h5>Strategy Name: {{ strategy.name }}</h5>
               <button class="btn btn-secondary" onclick="alert('Button clicked'); toggleStrategyGraph(this, '{{ strategy.name | tojson | safe }}', 'strategy-chart-{{ strategy.name | safe }}')">Toggle Graph</button>
               <button class="btn btn-danger" onclick="alert('Button clicked'); sellStrategy('{{ strategy.name | tojson | safe }}')">Sell Strategy</button>
               <div id="strategy-chart-{{ strategy.name }}"></div>
