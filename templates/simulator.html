@@ -283,9 +283,8 @@
                   {% endfor %}
                 </tbody>
               </table>
-              <h5>Strategy Name: {{ strategy.name }}</h5>
-              <button class="btn btn-secondary" onclick="alert('Button clicked'); toggleStrategyGraph(this, '{{ strategy.name | tojson | safe }}', 'strategy-chart-{{ strategy.name | safe }}')">Toggle Graph</button>
-              <button class="btn btn-danger" onclick="alert('Button clicked'); sellStrategy('{{ strategy.name | tojson | safe }}')">Sell Strategy</button>
+              <button class="btn btn-secondary" onclick="handleToggleStrategy(this, '{{ strategy.name | tojson | safe }}')">Toggle Graph</button>
+              <button class="btn btn-danger" onclick="handleSellStrategy('{{ strategy.name | tojson | safe }}')">Sell Strategy</button>
               <div id="strategy-chart-{{ strategy.name }}"></div>
             </div>
             {% endfor %}
@@ -325,6 +324,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Add Plotly.js library -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+  function handleToggleStrategy(button, strategyName) {
+    console.log('Toggling strategy graph for:', strategyName);
+    toggleStrategyGraph(button, strategyName, `strategy-chart-${strategyName}`);
+  }
+
+  function handleSellStrategy(strategyName) {
+    console.log('Selling strategy:', strategyName);
+    sellStrategy(strategyName);
+  }
+</script>
 
 <script>
   // Fetch and update stock prices dynamically
