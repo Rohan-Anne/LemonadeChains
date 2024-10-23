@@ -283,9 +283,9 @@
                   {% endfor %}
                 </tbody>
               </table>
-              <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, decodeURIComponent('{{ strategy.name | urlencode }}'), 'strategy-chart-{{ strategy.name | urlencode }}')">Toggle Graph</button>
-              <button class="btn btn-danger" onclick="sellStrategy(decodeURIComponent('{{ strategy.name | urlencode }}'))">Sell Strategy</button>
-              <div id="strategy-chart-{{ strategy.name }}"></div>
+              <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, escapeStrategyName('{{ strategy.name }}'), 'strategy-chart-{{ strategy.name | replace("'", "") }}')">Toggle Graph</button>
+              <button class="btn btn-danger" onclick="sellStrategy(escapeStrategyName('{{ strategy.name }}'))">Sell Strategy</button>
+              <div id="strategy-chart-{{ strategy.name | replace("'", "") }}"></div> <!-- Remove apostrophes from ID -->
             </div>
             {% endfor %}
           {% else %}
@@ -334,6 +334,13 @@
   function handleSellStrategy(strategyName) {
     console.log('Selling strategy:', strategyName);
     sellStrategy(strategyName);
+  }
+</script>
+
+<script>
+  // A utility function to escape single quotes and other characters in JavaScript strings
+  function escapeStrategyName(name) {
+    return name.replace(/'/g, "\\'");  // Escape single quotes for JavaScript
   }
 </script>
 
