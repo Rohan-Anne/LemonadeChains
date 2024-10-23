@@ -283,8 +283,8 @@
                   {% endfor %}
                 </tbody>
               </table>
-              <button class="btn btn-secondary" onclick="alert('Button clicked'); toggleStrategyGraph(this, '{{ strategy.name | tojson | safe }}', 'strategy-chart-{{ strategy.name | safe }}')">Toggle Graph</button>
-              <button class="btn btn-danger" onclick="alert('Button clicked'); sellStrategy('{{ strategy.name | tojson | safe }}')">Sell Strategy</button>
+              <button class="btn btn-secondary" onclick="console.log('Test log');">Toggle Graph</button>
+              <button class="btn btn-danger" onclick="console.log('Test log');">Sell Strategy</button>
               <div id="strategy-chart-{{ strategy.name }}"></div>
             </div>
             {% endfor %}
