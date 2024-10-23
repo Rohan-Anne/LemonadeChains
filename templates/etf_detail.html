@@ -321,4 +321,72 @@
   }
 </script>
 
+<script>
+  // Function to add an ETF to the watchlist
+  function addToWatchlist(ticker) {
+    fetch('/add_to_watchlist', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticker: ticker })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('ETF added to watchlist');
+
+            // Update the frontend to show the new ETF in the watchlist
+            const watchlist = document.getElementById('watchlist');
+            const listItem = document.createElement('li');
+            listItem.classList.add('list-group-item', 'watchlist-item');
+            listItem.id = `watchlist-item-${ticker}`;
+            listItem.innerHTML = `
+                <div class="stock-info">
+                    <a href="/etf_detail?ticker=${ticker}" class="stock-link">
+                      <div>${ticker}</div>
+                    </a>
+                    <div class="stock-price" id="price-${ticker}"></div>
+                </div>
+                <div id="mini-chart-${ticker}" class="tv-widget-mini"></div>
+            `;
+            watchlist.appendChild(listItem);
+
+            // Load the mini chart for the added ETF
+            loadMiniChart(ticker);
+        } else {
+            alert('Error adding to watchlist');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  // Function to remove an ETF from the watchlist
+  function removeFromWatchlist(ticker) {
+    fetch('/remove_from_watchlist', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticker: ticker })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('ETF removed from watchlist');
+
+            // Update the frontend to remove the ETF from the watchlist
+            const watchlistItem = document.getElementById(`watchlist-item-${ticker}`);
+            if (watchlistItem) {
+                watchlistItem.remove();
+            }
+        } else {
+            alert('Error removing from watchlist');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+</script>
+
+
 {% endblock %}
