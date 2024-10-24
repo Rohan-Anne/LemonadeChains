@@ -691,7 +691,7 @@ function loadTradingViewChart(ticker) {
         .then(data => {
             console.log('Received data:', data);
             if (!data.error) {
-                const { stock_price_range_losses, profits_losses, stock_price_range_gains, profits_gains, annotations, current_stock_price} = data;
+                const { stock_price_range_losses, profits_losses, stock_price_range_gains, profits_gains, annotations } = data;
                 
                 // Define losses (below breakeven) and gains (above breakeven)
                 let lossesTrace, gainsTrace;
@@ -743,22 +743,8 @@ function loadTradingViewChart(ticker) {
                     marker: { color: 'blue', size: 10 }
                 };
 
-                // Add purple vertical line for current stock price
-                const layout = {
-                    shapes: [
-                        {
-                            type: 'line',
-                            x0: current_stock_price,
-                            x1: current_stock_price,
-                            y0: Math.min(...profits_losses, ...profits_gains),
-                            y1: Math.max(...profits_losses, ...profits_gains),
-                            line: { color: 'purple', width: 2, dash: 'dot' }
-                        }
-                    ]
-                };
-
                 // Plot the data
-                Plotly.newPlot(graphContainer, [lossesTrace, gainsTrace, breakevenData], layout);
+                Plotly.newPlot(graphContainer, [lossesTrace, gainsTrace, breakevenData]);
 
                 graphContainer.style.display = 'block';  // Show the graph
 
@@ -802,7 +788,6 @@ function updateStrategyGraph() {
         } else {
             const stockPriceRange = data.stock_price_range;
             const cumulativeProfits = data.cumulative_profits;
-            const current_stock_price = data.current_stock_price;
 
             // Calculate max profit and max loss
             const maxProfit = Math.max(...cumulativeProfits);
@@ -866,16 +851,6 @@ function updateStrategyGraph() {
             };
 
             const layout = {
-                shapes: [
-                    {
-                        type: 'line',
-                        x0: current_stock_price,
-                        x1: current_stock_price,
-                        y0: Math.min(...cumulativeProfits),
-                        y1: Math.max(...cumulativeProfits),
-                        line: { color: 'purple', width: 2, dash: 'dot' }
-                    }
-                ],
                 title: 'Combined Strategy Profit/Loss',
                 xaxis: { title: 'Stock Price' },
                 yaxis: { title: 'Profit/Loss ($)' }
