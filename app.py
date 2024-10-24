@@ -616,10 +616,6 @@ def get_option_profit_data():
         # Use the OptionsAccount function to calculate the profit/loss data
         profit_loss_data = options_account.plot_single_profit_loss_data(ticker, expiration_date, option_type, strike)
 
-        stock = yf.Ticker(ticker)
-        current_price = stock.history(period="1d")['Close'].iloc[-1]
-        profit_loss_data['current_stock_price'] = current_price  # Include current stock price in response
-
         print(f"Generated profit/loss data for {ticker}: {profit_loss_data}")
 
         # Return the processed data as JSON
@@ -1045,18 +1041,6 @@ def get_combined_strategy_profit_data():
 
         print(f"Combined strategy data calculated: Stock Price Range: {stock_price_range}, Cumulative Profits: {cumulative_profits}")  # Debugging
 
-        # Assuming all contracts in the strategy are for the same underlying stock, get the first one
-        first_contract = strategy[0]
-        ticker_match = re.match(r"([A-Z]+)\d+[C|P]", first_contract['contract'])
-        if ticker_match:
-            ticker = ticker_match.group(1)
-        else:
-            return jsonify({'error': 'Invalid contract symbol format'}), 400
-
-        # Fetch current stock price using yfinance
-        stock = yf.Ticker(ticker)
-        current_price = stock.history(period="1d")['Close'].iloc[-1]
-
 
         # Return the data to the frontend
         return jsonify({
@@ -1065,7 +1049,6 @@ def get_combined_strategy_profit_data():
             'breakeven_points': breakeven_points,  # Return breakeven points
             'max_profit': f"${max_profit:.2f}",
             'max_loss': f"${max_loss:.2f}"
-            'current_stock_price': current_price  # Add current stock price
         })
 
     except Exception as e:
