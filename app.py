@@ -653,6 +653,15 @@ def logout():
         session.pop('email', None)
         session.pop('name', None)
         session.pop('options_account', None)
+
+        csrf_state = session.get('state')
+
+        # Clear the session
+        session.clear()
+        
+        # Restore the CSRF state after clearing
+        if csrf_state:
+            session['state'] = csrf_state
         
         flash('You have been logged out.', 'success')
     
