@@ -150,9 +150,9 @@
         <!-- Display remove button for strategies and individual items -->
         <td>
           {% if item.type == 'strategy' %}
-            <button class="btn btn-danger" onclick="removeFromCart('{{ item.name }}', 'strategy')">Remove</button>
+            <button class="btn btn-danger" onclick="removeFromCart('{{ item.name }}', 'strategy', this)">Remove</button>
           {% else %}
-            <button class="btn btn-danger" onclick="removeFromCart('{{ item.contract }}', '{{ item.action }}')">Remove</button>
+            <button class="btn btn-danger" onclick="removeFromCart('{{ item.contract }}', '{{ item.action }}', this)">Remove</button>
           {% endif %}
         </td>
       </tr>
@@ -189,11 +189,13 @@
     </tbody>
   </table>
 
-  <button class="btn confirm-btn" onclick="confirmTrades()">Confirm Trades</button>
+  <button id="confirm-btn" class="btn confirm-btn" onclick="confirmTrades(this)">Confirm Trades</button>
 </div>
 
 <script>
-  function removeFromCart(identifier, type) {
+  // Function to remove item from cart with button disabling
+  function removeFromCart(identifier, type, button) {
+    button.disabled = true;  // Disable button during fetch
     let payload = {};
     if (type === 'strategy') {
         payload = { name: identifier, type: 'strategy' };  // Ensure 'type' is set to 'strategy'
@@ -220,11 +222,13 @@
     })
     .catch(error => {
         console.error('Error:', error);  // Debug: log any fetch error
-    });
-}
+    })
+    .finally(() => button.disabled = false);  // Re-enable button if needed
+  }
 
-
-  function confirmTrades() {
+  // Function to confirm trades with button disabling
+  function confirmTrades(button) {
+    button.disabled = true; // Disable button
     console.log("Confirming trades");  // Debug: Log when confirm trades is triggered
     fetch('/confirm_trades', {
         method: 'POST'
@@ -241,10 +245,12 @@
     })
     .catch(error => {
         console.error('Error:', error);  // Debug: log any fetch error
-    });
+    })
+    .finally(() => button.disabled = false);
   }
 </script>
 {% endblock %}
+
 
 
 
