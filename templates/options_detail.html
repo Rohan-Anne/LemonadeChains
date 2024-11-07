@@ -664,6 +664,7 @@ function loadTradingViewChart(ticker) {
 
 
       function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
+        button.disabled = true; // Disable the button during fetch
         console.log(`Toggle graph clicked for: ${ticker} ${strike} ${type} ${expiration}`); 
     const expandableContent = document.getElementById(graphId);
 
@@ -761,7 +762,11 @@ function loadTradingViewChart(ticker) {
 
                 detailsTable.style.display = 'block';  // Show the details table
             }
-        });
+        })
+        .catch(error => {
+            console.error('Error fetching graph data:', error);
+        })
+        .finally(() => button.disabled = false);
     }
 }
 
