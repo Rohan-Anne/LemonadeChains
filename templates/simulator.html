@@ -497,6 +497,7 @@ function sellStock(ticker, ownedQuantity, button) {
 
     if (quantityToSell <= 0 || quantityToSell > ownedQuantity) {
         alert('Invalid quantity.');
+        button.disabled = false;
         return;
     }
 
