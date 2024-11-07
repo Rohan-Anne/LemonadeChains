@@ -664,13 +664,15 @@ function loadTradingViewChart(ticker) {
 
 
       function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
-        button.disabled = true; // Disable the button during fetch
         console.log(`Toggle graph clicked for: ${ticker} ${strike} ${type} ${expiration}`); 
     const expandableContent = document.getElementById(graphId);
 
     if (expandableContent.innerHTML !== '') {
         expandableContent.innerHTML = '';  // Collapse graph
+        button.disabled = false;
     } else {
+        button.disabled = true;
+        
         const expandableTemplate = document.getElementById('expandable-template').content.cloneNode(true);
         expandableContent.appendChild(expandableTemplate);
 
