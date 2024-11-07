@@ -222,7 +222,7 @@
               <h5>{{ position['ticker'] }} - {{ position['quantity'] }} shares</h5>
               <div>
                 <input type="number" id="sell-quantity-{{ position['ticker'] }}" placeholder="Quantity to sell" min="1" max="{{ position['quantity'] }}">
-                <button class="btn btn-danger" onclick="sellStock('{{ position['ticker'] }}', {{ position['quantity'] }})">Sell</button>
+                <button class="btn btn-danger" onclick="sellStock('{{ position['ticker'] }}', {{ position['quantity'] }}, this)">Sell</button>
               </div>
               <div id="mini-chart-{{ position['ticker'] }}" class="tv-widget-mini"></div>
             </div>
@@ -243,7 +243,7 @@
             <div class="option-info mb-3">
               <h5>{{ option['ticker'] }} - {{ option['option_type'].capitalize() }} - Strike: {{ option['strike_price'] }} - Expiry: {{ option['expiration_date'] }} - Quantity: {{ option['quantity'] }}</h5>
               <input type="number" id="sell-quantity-{{ option['ticker'] }}-{{ option['strike_price'] }}" min="1" max="{{ option['quantity'] }}" value="1">
-              <button class="btn btn-danger" onclick="sellOption('{{ option['ticker'] }}', {{ option['strike_price'] }}, '{{ option['option_type'] }}', '{{ option['expiration_date'] }}', {{ option['quantity'] }})">Sell</button>
+              <button class="btn btn-danger" onclick="sellOption('{{ option['ticker'] }}', {{ option['strike_price'] }}, '{{ option['option_type'] }}', '{{ option['expiration_date'] }}', {{ option['quantity'] }}, this)">Sell</button>
               <button class="btn btn-secondary" onclick="toggleProfitGraph(this, '{{ option.ticker }}', {{ option.strike_price }}, '{{ option.option_type }}', '{{ option.expiration_date }}', 'profit-chart-{{ option.ticker }}-{{ option.strike_price }}')">Toggle Graph</button>
               <div id="profit-chart-{{ option['ticker'] }}-{{ option['strike_price'] }}"></div>
             </div>
@@ -491,7 +491,8 @@
 
 
 
-function sellStock(ticker, ownedQuantity) {
+function sellStock(ticker, ownedQuantity, button) {
+    button.disabled = true;
     const quantityToSell = document.getElementById(`sell-quantity-${ticker}`).value;
 
     if (quantityToSell <= 0 || quantityToSell > ownedQuantity) {
@@ -513,10 +514,12 @@ function sellStock(ticker, ownedQuantity) {
             alert(`Error selling stock: ${data.error}`);
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => console.error('Error:', error))
+    .finally(() => button.disabled = false);
 }
 
-function sellOption(ticker, strike, optionType, expiration, ownedQuantity) {
+function sellOption(ticker, strike, optionType, expiration, ownedQuantity, button) {
+    button.disabled = true;
     console.log("Function sellOption called with parameters:");
     console.log(`Ticker: ${ticker}, Strike: ${strike}, Option Type: ${optionType}, Expiration: ${expiration}, Owned Quantity: ${ownedQuantity}`);
 
@@ -580,7 +583,8 @@ function sellOption(ticker, strike, optionType, expiration, ownedQuantity) {
     .catch(error => {
         console.error('Error:', error);
         alert('Failed to sell the option. Please try again.');
-    });
+    })
+    .finally(() => button.disabled = false);
 }
 
 
