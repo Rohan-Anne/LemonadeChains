@@ -424,7 +424,7 @@ def simulator():
 def debug_stock(ticker):
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
+        info = stock.get_info()
         return jsonify(info)
     except Exception as e:
         return f"Error: {e}", 500
