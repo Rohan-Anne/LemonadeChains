@@ -82,5 +82,5 @@ uritemplate==4.1.1
 urllib3==1.26.19
 webencodings==0.5.1
 Werkzeug==3.0.3
-yfinance==0.2.41
+yfinance
 zipp==3.19.2
