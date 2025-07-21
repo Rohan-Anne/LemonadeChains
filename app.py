@@ -419,6 +419,16 @@ def simulator():
         flash('User record not found', 'danger')
         return redirect(url_for('login'))
 
+
+@app.route('/debug-stock/<string:ticker>')
+def debug_stock(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        return jsonify(info)
+    except Exception as e:
+        return f"Error: {e}", 500
+
 @app.route('/stock/<string:ticker>')
 def stock_detail(ticker):
     if 'user_id' not in session:
