@@ -51,6 +51,8 @@ if 'HEROKU' in os.environ:
 else:
     domain = 'http://127.0.0.1:5000'  # Local development domain
 
+domain = 'https://www.lemonadechains.com'
+
 
 GOOGLE_CLIENT_SECRETS_FILE = "authentication_client_secret.json"
 flow = Flow.from_client_secrets_file(
