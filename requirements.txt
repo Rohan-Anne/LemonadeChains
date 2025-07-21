@@ -72,7 +72,7 @@ requests==2.32.3
 requests-oauthlib==2.0.0
 requests-toolbelt==0.10.1
 rsa==4.9
-scipy==1.13.1
+scipy==1.15.1
 six==1.16.0
 soupsieve==2.5
 tenacity==9.0.0
