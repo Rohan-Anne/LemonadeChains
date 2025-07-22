@@ -23,8 +23,7 @@ import os
 app = Flask(__name__, static_folder='static')
 app.secret_key = 'RohanJeffreyLemonadeChains'
 
-
-
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # Initialize Firebase Admin SDK
 try:
