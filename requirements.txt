@@ -4,11 +4,12 @@ blinker==1.8.2
 CacheControl==0.14.0
 cachetools==5.4.0
 certifi==2024.7.4
-cffi==1.16.0
+cffi>=1.17.1
 charset-normalizer==3.3.2
 click==8.1.7
 contourpy==1.2.1
 cryptography==42.0.8
+curl_cffi>=0.6
 cycler==0.12.1
 firebase-admin==6.5.0
 Flask==3.0.3
