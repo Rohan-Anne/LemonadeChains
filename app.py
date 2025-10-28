@@ -46,11 +46,11 @@ firebase_config = {
 }
 
 if 'HEROKU' in os.environ:
-    domain = 'https://www.lemonadechains.com'
+    domain = 'https://lemonadechains.com'
 else:
     domain = 'http://127.0.0.1:5000'  # Local development domain
 
-domain = 'https://www.lemonadechains.com'
+domain = 'https://lemonadechains.com'
 
 
 GOOGLE_CLIENT_SECRETS_FILE = "authentication_client_secret.json"
