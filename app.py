@@ -18,6 +18,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
 import os
+from functools import lru_cache
+from collections import defaultdict
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
@@ -45,12 +47,12 @@ firebase_config = {
   "measurementId": "G-2TMBXQ8VVB"
 }
 
-if 'HEROKU' in os.environ:
-    domain = 'https://www.lemonadechains.com'
+# Determine domain based on environment
+if 'RENDER' in os.environ or 'HEROKU' in os.environ:
+    # Production environment - use your actual domain
+    domain = os.environ.get('DOMAIN', 'https://www.lemonadechains.com')
 else:
     domain = 'http://127.0.0.1:5000'  # Local development domain
-
-domain = 'https://www.lemonadechains.com'
 
 
 GOOGLE_CLIENT_SECRETS_FILE = "authentication_client_secret.json"
@@ -285,30 +287,58 @@ def get_stock_price():
         return jsonify({'error': 'Failed to fetch stock data'}), 500
 
 
+# Cache for search results (query -> (results, timestamp))
+search_cache = {}
+CACHE_DURATION = 300  # Cache for 5 minutes
+
 @app.route('/search_ticker')
 def search_ticker():
-    query = request.args.get('query')
+    query = request.args.get('query', '').strip().upper()
     
-    if not query:
+    # Require at least 2 characters to search
+    if not query or len(query) < 2:
         return jsonify([])
 
+    # Check cache first
+    cache_key = query
+    if cache_key in search_cache:
+        cached_results, timestamp = search_cache[cache_key]
+        if time.time() - timestamp < CACHE_DURATION:
+            return jsonify(cached_results)
+
     try:
+        # Rate limiting: Add a small delay between requests
+        time.sleep(0.2)  # 200ms delay to avoid hitting rate limits
+        
         # Use custom headers to mimic a browser request
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
+            'Referer': 'https://finance.yahoo.com/',
         }
         
-        response = requests.get(f"https://query2.finance.yahoo.com/v1/finance/search?q={query}", headers=headers)
+        response = requests.get(
+            f"https://query2.finance.yahoo.com/v1/finance/search?q={query}", 
+            headers=headers,
+            timeout=5
+        )
 
         if response.status_code == 429:
             print("Rate limited by Yahoo Finance API. Please slow down your requests.")
-            return jsonify({"error": "Too many requests, please try again later."})
+            # Return cached results if available, even if expired
+            if cache_key in search_cache:
+                cached_results, _ = search_cache[cache_key]
+                return jsonify(cached_results)
+            return jsonify({"error": "Too many requests. Please wait a moment and try again."})
 
         if response.status_code != 200:
             print(f"Error: Received status code {response.status_code}")
+            # Return cached results if available
+            if cache_key in search_cache:
+                cached_results, _ = search_cache[cache_key]
+                return jsonify(cached_results)
             return jsonify([])
 
         # Parse the response as JSON
@@ -325,10 +355,31 @@ def search_ticker():
             if len(results) >= 10:
                 break
 
+        # Cache the results
+        search_cache[cache_key] = (results, time.time())
+        
+        # Clean old cache entries (keep only last 100)
+        if len(search_cache) > 100:
+            # Remove oldest entries
+            sorted_cache = sorted(search_cache.items(), key=lambda x: x[1][1])
+            for key, _ in sorted_cache[:-100]:
+                del search_cache[key]
+
         return jsonify(results)
     
+    except requests.exceptions.Timeout:
+        print("Request timeout for search query")
+        # Return cached results if available
+        if cache_key in search_cache:
+            cached_results, _ = search_cache[cache_key]
+            return jsonify(cached_results)
+        return jsonify({"error": "Request timeout. Please try again."})
     except Exception as e:
         print(f"Error fetching search results: {e}")
+        # Return cached results if available
+        if cache_key in search_cache:
+            cached_results, _ = search_cache[cache_key]
+            return jsonify(cached_results)
         return jsonify([])
 
 
@@ -1717,5 +1768,12 @@ if __name__ == '__main__':
     scheduler.add_job(run_remove_expired_options_and_strategies, trigger='interval', minutes=1)
     scheduler.add_job(run_record_portfolio_value, trigger='interval', minutes=30)
     scheduler.start()
-    app.run(ssl_context='adhoc')
+    
+    # Use SSL only in production (Heroku), not in local development
+    # For Render/Railway/etc, gunicorn handles this via Procfile
+    if 'HEROKU' in os.environ:
+        app.run(ssl_context='adhoc')
+    else:
+        # Local development only
+        app.run(debug=True, host='127.0.0.1', port=5000)
  

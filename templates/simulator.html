@@ -449,23 +449,47 @@
   });
 
    
-  // Functionality for search bar and watchlist remains the same as before
-  document.getElementById('search-bar').addEventListener('input', function() {
-    let query = this.value;
+  // Functionality for search bar and watchlist with debouncing to prevent rate limiting
+  let searchTimeout;
+  const searchBar = document.getElementById('search-bar');
+  const resultsContainer = document.getElementById('search-results');
+  
+  searchBar.addEventListener('input', function() {
+    let query = this.value.trim();
 
-    if (query.length > 0) {
-        fetch(`/search_ticker?query=${query}`)
+    // Clear previous timeout
+    clearTimeout(searchTimeout);
+
+    // Hide results if query is too short
+    if (query.length < 2) {
+        resultsContainer.style.display = 'none';
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    // Show loading indicator
+    resultsContainer.style.display = 'block';
+    resultsContainer.innerHTML = '<li class="list-group-item text-muted">Searching...</li>';
+
+    // Debounce: Wait 500ms after user stops typing before making request
+    searchTimeout = setTimeout(function() {
+        fetch(`/search_ticker?query=${encodeURIComponent(query)}`)
             .then(response => response.json())
             .then(data => {
                 console.log('Search results:', data);
-                let resultsContainer = document.getElementById('search-results');
                 resultsContainer.innerHTML = '';  // Clear previous results
 
+                // Handle error response
+                if (data.error) {
+                    resultsContainer.innerHTML = `<li class="list-group-item text-danger">${data.error}</li>`;
+                    return;
+                }
+
                 if (data.length > 0) {
-                    resultsContainer.style.display = 'block';
                     data.forEach(ticker => {
                         let listItem = document.createElement('li');
                         listItem.classList.add('list-group-item');
+                        listItem.style.cursor = 'pointer';
                         listItem.textContent = `${ticker.name} (${ticker.symbol}) - ${ticker.type}`;
 
                         // Handle navigation to the correct detail page
@@ -477,17 +501,26 @@
                             }
                         };
 
+                        // Add hover effect
+                        listItem.addEventListener('mouseenter', function() {
+                            this.style.backgroundColor = '#f8f9fa';
+                        });
+                        listItem.addEventListener('mouseleave', function() {
+                            this.style.backgroundColor = '';
+                        });
+
                         resultsContainer.appendChild(listItem);
                     });
                 } else {
-                    resultsContainer.style.display = 'none';
+                    resultsContainer.innerHTML = '<li class="list-group-item text-muted">No results found</li>';
                 }
             })
-            .catch(error => console.error('Error fetching search results:', error));
-    } else {
-        document.getElementById('search-results').style.display = 'none';
-    }
-});
+            .catch(error => {
+                console.error('Error fetching search results:', error);
+                resultsContainer.innerHTML = '<li class="list-group-item text-danger">Error searching. Please try again.</li>';
+            });
+    }, 500); // Wait 500ms after user stops typing
+  });
 
 
 

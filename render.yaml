@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: lemonadechains
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: OAUTHLIB_INSECURE_TRANSPORT
+        value: "0"
+    healthCheckPath: /
