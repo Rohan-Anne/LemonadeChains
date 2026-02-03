@@ -13,7 +13,7 @@ import urllib.request
 import os
 import pickle
 import re
-
+from datetime import datetime, timedelta
 import logging
 
 logging.basicConfig(filename='options_account.log', level=logging.DEBUG,
@@ -61,45 +61,43 @@ class OptionsAccount:
         return account
 
     def get_risk_free_rate(self):
-        # Global SSL context setting
-        ssl._create_default_https_context = ssl._create_unverified_context
+      # Render-safe cache location
+      CACHE_FILE = "/tmp/risk_free_rate_cache.pkl"
 
-        # Define cache file location
-        CACHE_FILE = 'risk_free_rate_cache.pkl'
+      # 1) Return cached value if it's from today
+      try:
+          if os.path.exists(CACHE_FILE):
+              with open(CACHE_FILE, "rb") as f:
+                  cache_data = pickle.load(f)
+              if cache_data.get("date") == datetime.utcnow().date():
+                  return float(cache_data["rate"])
+      except Exception:
+          pass  # cache failures should never crash
 
-        # Function to fetch or load cached risk-free rate
-        def fetch_risk_free_rate(fred):
-            # Check if cached value exists and is fresh (same day)
-            if os.path.exists(CACHE_FILE):
-                with open(CACHE_FILE, 'rb') as f:
-                    cache_data = pickle.load(f)
-                    if cache_data['date'] == datetime.today().date():
-                        return cache_data['rate']
+      # 2) Fetch from FRED safely (NO realtime_start)
+      fred_api_key = os.environ.get("FRED_API_KEY", "69c0e374a0a586dc55cda47429226921")
+      fred = Fred(api_key=fred_api_key)
 
-            # Fetch the latest risk-free rate using a more efficient query
-            try:
-                risk_free_rate = fred.get_series('DGS3MO', realtime_start=datetime.today().strftime('%Y-%m-%d')).iloc[-1] / 100
-                # Cache the result with today's date
-                with open(CACHE_FILE, 'wb') as f:
-                    pickle.dump({'rate': risk_free_rate, 'date': datetime.today().date()}, f)
-                return risk_free_rate
-            except (ValueError, urllib.error.URLError) as e:
-                previous_day = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-                try:
-                    print("Trying to fetch data for the previous day: ", previous_day)
-                    risk_free_rate = fred.get_series('DGS3MO', realtime_start=previous_day).iloc[-1] / 100
-                    return risk_free_rate
-                except (IndexError, urllib.error.URLError) as e:
-                    print(f"Failed to retrieve data even for the previous day: {previous_day}. Error: {e}")
-                    return 0.01  # Fallback to default rate if both today and the previous day fail
-                
+      try:
+          series = fred.get_series("DGS3MO")  # <-- key fix
+          # drop NaNs and take most recent
+          series = series.dropna()
+          if len(series) == 0:
+              return 0.01
+          risk_free_rate = float(series.iloc[-1]) / 100.0
 
-        # Initialize Fred API
-        fred_api_key = "69c0e374a0a586dc55cda47429226921"  # Replace with your FRED API key
-        fred = Fred(api_key=fred_api_key)
+          # 3) Cache result
+          try:
+              with open(CACHE_FILE, "wb") as f:
+                  pickle.dump({"rate": risk_free_rate, "date": datetime.utcnow().date()}, f)
+          except Exception:
+              pass
 
-        # Fetch the risk-free rate
-        return fetch_risk_free_rate(fred)
+          return risk_free_rate
+
+      except Exception as e:
+          print("FRED failed, using fallback rate:", e)
+          return 0.01
 
     def sign_in(self, entered_password):
         if entered_password == self.password:
