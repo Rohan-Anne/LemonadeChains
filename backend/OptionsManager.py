@@ -83,13 +83,27 @@ class OptionsManager:
 
 
     def calculateOptionPrice(self, ticker, strike_price, expiration_date, option_type, r):
+        S = float(self.getStockPrice(ticker))
+        K = float(strike_price)
 
-        S = self.getStockPrice(ticker)
-        K = strike_price
-        T = (pd.to_datetime(expiration_date).replace(tzinfo=None) - pd.Timestamp.now().replace(tzinfo=None)).days / 365.0
-        volatility = self.get_implied_volatility(ticker, expiration_date, option_type, K)
-        price = self.black_scholes(S, K, T, r, volatility, option_type)
-        return price
+        # robust time-to-expiry using seconds, not .days floor
+        now = pd.Timestamp.utcnow()
+        exp = pd.to_datetime(expiration_date, utc=True, errors="coerce")
+        if pd.isna(exp):
+            return None
+        T = (exp - now).total_seconds() / (365.0 * 24 * 3600)
+
+        # expired options -> intrinsic value
+        if T <= 0:
+            return self.black_scholes(S, K, 0, r, 0.3, option_type)
+
+        iv = self.get_implied_volatility(ticker, expiration_date, option_type, K)
+
+        # fallback volatility to avoid crashing / timeouts
+        sigma = float(iv) if iv is not None else 0.30
+
+        return float(self.black_scholes(S, K, T, float(r), sigma, option_type))
+
 
 
 
