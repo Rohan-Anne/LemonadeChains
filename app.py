@@ -23,7 +23,7 @@ from collections import defaultdict
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
-app.secret_key = 'RohanJeffreyLemonadeChains'
+app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
