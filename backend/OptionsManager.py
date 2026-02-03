@@ -51,48 +51,36 @@ class OptionsManager:
     
     def get_implied_volatility(self, ticker, expiration_date, option_type, strike_price):
         try:
-            new_expiration = None
-            # Check if expiration_date is a datetime object
+            # normalize expiration_date to YYYY-MM-DD string
             if isinstance(expiration_date, datetime):
-                # If the time part is 23:59:59, move to the next day
-                if expiration_date.time() == datetime.strptime("23:59:59", "%H:%M:%S").time():
-                    expiration_date += timedelta(days=1)  # Move to the next day
-
-                # Convert to string in the desired format (YYYY-MM-DD)
-                expiration_date = expiration_date.strftime("%Y-%m-%d")
-                new_expiration = expiration_date
+                exp = expiration_date.date().isoformat()
             else:
-                # If it's already a string, attempt to parse it
-                try:
-                    expiration_dt = datetime.strptime(expiration_date, "%Y-%m-%d %H:%M:%S")
-                    if expiration_dt.time() == datetime.strptime("23:59:59", "%H:%M:%S").time():
-                        expiration_dt += timedelta(days=1)  # Move to the next day
-                    expiration_date = expiration_dt.strftime("%Y-%m-%d")  # Convert to string in YYYY-MM-DD format
-                    new_expiration = expiration_date
-                except ValueError:
-                    # If the format is already just a date, keep it as is
-                    expiration_date = datetime.strptime(expiration_date, "%Y-%m-%d").strftime("%Y-%m-%d")
-                    new_expiration = expiration_date
+                exp = pd.to_datetime(expiration_date).date().isoformat()
 
-            # Fetch the stock option chain for the expiration date
             stock = yf.Ticker(ticker)
-            option_chain = stock.option_chain(new_expiration)
-            
-            # Select the correct option type (calls or puts)
-            options = option_chain.calls if option_type == 'call' else option_chain.puts
-            
-            # Find the specific contract by strike price and return its implied volatility
-            option_row = options[options['strike'] == strike_price]
-            if option_row.empty:
-                raise ValueError(f"Contract with strike price {strike_price} not found.")
-            
-            implied_vol = option_row['impliedVolatility'].values[0]
-            
-            return implied_vol
+
+            # FAST FAIL: if expiration isn't available, do not call option_chain
+            available = stock.options or []
+            if exp not in available:
+                # This is the exact error you are seeing in logs — but we won't crash now
+                return None
+
+            chain = stock.option_chain(exp)
+            options = chain.calls if option_type == "call" else chain.puts
+
+            row = options[options["strike"] == float(strike_price)]
+            if row.empty:
+                return None
+
+            iv = row["impliedVolatility"].values[0]
+            if iv is None or (isinstance(iv, float) and np.isnan(iv)):
+                return None
+            return float(iv)
 
         except Exception as e:
-            print(f"Error fetching implied volatility for {ticker} with strike price {strike_price} and expiration {expiration_date}: {e}")
+            print(f"IV fetch failed for {ticker} {expiration_date} {option_type} {strike_price}: {e}")
             return None
+
 
     def calculateOptionPrice(self, ticker, strike_price, expiration_date, option_type, r):
 
