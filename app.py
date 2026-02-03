@@ -25,6 +25,9 @@ from collections import defaultdict
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
+print("BOOT: SECRET_KEY length =", len(app.config["SECRET_KEY"]))
+print("BOOT: RENDER =", os.environ.get("RENDER"))
+
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # Initialize Firebase Admin SDK
