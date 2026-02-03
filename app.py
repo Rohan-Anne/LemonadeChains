@@ -32,18 +32,20 @@ print("BOOT: RENDER =", os.environ.get("RENDER"))
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
-info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
-info["private_key"] = info["private_key"].replace("\\n", "\n")
-creds = service_account.Credentials.from_service_account_info(info)
-
 # Initialize Firebase Admin SDK
+# Initialize Firebase Admin SDK from env var JSON
 try:
-    cred = credentials.Certificate('lemonadechainskey.json')
+    info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    info["private_key"] = info["private_key"].replace("\\n", "\n")
+
+    cred = credentials.Certificate(info)
     firebase_admin.initialize_app(cred)
+    print("BOOT: Firebase Admin initialized")
 except Exception as e:
     print(f"Error initializing Firebase Admin SDK: {e}")
+    raise
 
-db = firestore.client(credentials=creds, project=info["project_id"])
+db = firestore.client()
 
 # Firebase configuration for client-side
 firebase_config = {
