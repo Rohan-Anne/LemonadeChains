@@ -348,6 +348,8 @@ class OptionsAccount:
         logging.debug(f"Initial Balance (Buying Power): {self.balance}")
         test_value = 0
 
+        r = self.get_risk_free_rate()
+
         for key, position in self.positions.items():
 
             price = self.options_manager.calculateOptionPrice(
@@ -355,7 +357,7 @@ class OptionsAccount:
                 position['strike_price'],
                 position['expiration_date'],
                 position['option_type'],
-                self.get_risk_free_rate(),
+                r,
             )
             position_value = price * position['quantity']
             total_value += position_value
@@ -387,7 +389,7 @@ class OptionsAccount:
                     strike_price=strike_price,
                     expiration_date=expiration_date,
                     option_type=option_type,
-                    r=self.get_risk_free_rate()
+                    r=r
                 )
 
                 if price is not None:
