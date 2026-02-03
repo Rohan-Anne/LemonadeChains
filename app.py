@@ -17,9 +17,11 @@ import re
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
-import os
+import os, json
 from functools import lru_cache
 from collections import defaultdict
+from google.oauth2 import service_account
+
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
@@ -30,6 +32,10 @@ print("BOOT: RENDER =", os.environ.get("RENDER"))
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
+info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+info["private_key"] = info["private_key"].replace("\\n", "\n")
+creds = service_account.Credentials.from_service_account_info(info)
+
 # Initialize Firebase Admin SDK
 try:
     cred = credentials.Certificate('lemonadechainskey.json')
@@ -37,7 +43,7 @@ try:
 except Exception as e:
     print(f"Error initializing Firebase Admin SDK: {e}")
 
-db = firestore.client()
+db = firestore.client(credentials=creds, project=info["project_id"])
 
 # Firebase configuration for client-side
 firebase_config = {
