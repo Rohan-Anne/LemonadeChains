@@ -86,6 +86,7 @@ webencodings==0.5.1
 Werkzeug==3.0.3
 yfinance==0.2.65
 zipp==3.19.2
-langchain>=0.3.0
-langchain-anthropic>=0.3.0
-langchain-core>=0.3.0
+langchain==0.3.25
+langchain-anthropic==0.3.12
+langchain-core==0.3.59
+anthropic==0.52.0
