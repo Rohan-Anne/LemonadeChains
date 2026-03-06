@@ -343,12 +343,25 @@ class OptionsAccount:
         if not self.signed_in:
             print("Please sign in before performing any transactions.")
             return 0
-        
+
         total_value = self.balance
         logging.debug(f"Initial Balance (Buying Power): {self.balance}")
         test_value = 0
 
         r = self.get_risk_free_rate()
+
+        # Pre-warm the price cache for all tickers we'll need
+        from backend.OptionsManager import get_batch_prices
+        all_tickers = set()
+        for key, position in self.positions.items():
+            all_tickers.add(position['ticker'])
+        for key, position in self.stockpositions.items():
+            all_tickers.add(position['ticker'])
+        for strategy in self.strategies:
+            for contract in strategy['contracts']:
+                all_tickers.add(contract['contract'][:-15])
+        if all_tickers:
+            get_batch_prices(list(all_tickers))
 
         for key, position in self.positions.items():
 

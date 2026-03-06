@@ -18,10 +18,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import atexit
 import os, json
+from dotenv import load_dotenv
 from functools import lru_cache
 from collections import defaultdict
 from google.oauth2 import service_account
 
+load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
@@ -275,27 +277,35 @@ def search_ticker():
 @app.route('/get_stock_price')
 def get_stock_price():
     ticker = request.args.get('ticker')
-    
+
     if not ticker:
         return jsonify({'error': 'Ticker symbol is required'}), 400
-    
-    try:
-        # Fetch stock data using yfinance
-        stock = yf.Ticker(ticker)
-        
-        # Get the current price
-        current_price = stock.history(period="1d")['Close'].iloc[-1]
-        
-        # Get the last 5 days of closing prices for the chart
-        history = stock.history(period="5d")['Close'].tolist()
 
-        return jsonify({
-            'price': round(current_price, 2),  # Return the current price rounded to 2 decimal places
-            'prices': [round(price, 2) for price in history]  # Return the last 5 closing prices
-        })
+    try:
+        from backend.OptionsManager import get_batch_prices
+        result = get_batch_prices([ticker])
+        data = result.get(ticker, {})
+        if data.get('price') is None:
+            return jsonify({'error': 'Failed to fetch stock data'}), 500
+        return jsonify(data)
     except Exception as e:
         print(f"Error fetching stock data: {e}")
         return jsonify({'error': 'Failed to fetch stock data'}), 500
+
+
+@app.route('/get_batch_stock_prices')
+def get_batch_stock_prices():
+    tickers_param = request.args.get('tickers', '')
+    if not tickers_param:
+        return jsonify({'error': 'tickers parameter is required'}), 400
+
+    tickers = [t.strip().upper() for t in tickers_param.split(',') if t.strip()]
+    if not tickers:
+        return jsonify({'error': 'No valid tickers provided'}), 400
+
+    from backend.OptionsManager import get_batch_prices
+    results = get_batch_prices(tickers)
+    return jsonify(results)
 
 
 # Cache for search results (query -> (results, timestamp))
@@ -985,6 +995,9 @@ def confirm_trades():
 
     print(f"Processing cart: {cart}")  # Debug: log cart content
 
+    shared_options_manager = OptionsManager()
+    shared_r = options_account.get_risk_free_rate()
+
     for item in cart:
         print(f"Processing item: {item}")  # Debug: log each item being processed
         if item['type'] == 'option':
@@ -1043,9 +1056,7 @@ def confirm_trades():
                     success, message = False, "Invalid action for option"
                 """
 
-                options_manager_instance = OptionsManager()
-
-                single_change = options_manager_instance.calculateOptionPrice(ticker, strike_price, expiration_date, option_type, options_account.get_risk_free_rate())
+                single_change = shared_options_manager.calculateOptionPrice(ticker, strike_price, expiration_date, option_type, shared_r)
 
                 balance_change += single_change
 
@@ -1716,16 +1727,34 @@ def run_record_portfolio_value():
         with app.app_context():
             print("Running record_portfolio_value for all users...")
 
+            from backend.OptionsManager import get_batch_prices
+
             # Fetch all users from Firestore
             users_ref = db.collection('users')
-            users = users_ref.stream()
+            all_users = list(users_ref.stream())
 
-            for user_doc in users:
+            # Collect all unique tickers across ALL users to pre-warm cache once
+            all_tickers = set()
+            user_data_list = []
+            for user_doc in all_users:
                 user_data = user_doc.to_dict()
+                user_data_list.append((user_doc, user_data))
+                for pos in user_data.get('positions', {}).values():
+                    all_tickers.add(pos.get('ticker', ''))
+                for pos in user_data.get('stockpositions', {}).values():
+                    all_tickers.add(pos.get('ticker', ''))
+                for strategy in user_data.get('strategies', []):
+                    for contract in strategy.get('contracts', []):
+                        all_tickers.add(contract['contract'][:-15])
+            all_tickers.discard('')
 
+            if all_tickers:
+                print(f"Pre-warming cache for {len(all_tickers)} tickers...")
+                get_batch_prices(list(all_tickers))
+
+            for user_doc, user_data in user_data_list:
                 # Check if we can construct an OptionsAccount from available data
                 if 'balance' in user_data and 'volatility' in user_data and 'risk_free_rate' in user_data:
-                    # Dynamically create an OptionsAccount object if it doesn't exist
                     options_account = OptionsAccount(
                         username=user_data.get('name', 'Unknown'),
                         password=user_data.get('password', 'default_password'),
@@ -1741,22 +1770,16 @@ def run_record_portfolio_value():
 
                 options_account.signed_in = True
 
-                # Calculate the portfolio value
+                # Calculate the portfolio value (will hit warm cache)
                 portfolio_value = options_account.get_portfolio_value()
 
-                # Create a timestamp for the portfolio value
                 timestamp = datetime.utcnow()
-
-                # Retrieve the current portfolio history from the user document
                 portfolio_history = user_data.get('portfolio_history', [])
-
-                # Append the new portfolio value and timestamp
                 portfolio_history.append({
                     'portfolio_value': portfolio_value,
                     'timestamp': timestamp
                 })
 
-                # Update Firestore with the new portfolio history
                 user_ref = db.collection('users').document(user_doc.id)
                 user_ref.update({
                     'portfolio_history': portfolio_history,
@@ -1776,7 +1799,7 @@ def legal():
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(run_remove_expired_options_and_strategies, trigger='interval', minutes=1)
+    scheduler.add_job(run_remove_expired_options_and_strategies, trigger='interval', minutes=15)
     scheduler.add_job(run_record_portfolio_value, trigger='interval', minutes=30)
     scheduler.start()
     

@@ -346,18 +346,22 @@
 </script>
 
 <script>
-  // Fetch and update stock prices dynamically
+  // Fetch and update stock prices dynamically using batch endpoint
   function updateStockPrices() {
     const tickers = {{ watchlist | tojson }};
-    tickers.forEach(ticker => {
-      fetch(`/get_stock_price?ticker=${ticker}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById(`price-${ticker}`).textContent = `$${data.price}`;
-          updateStockChart(ticker, data.prices);
-        })
-        .catch(error => console.error('Error fetching stock price:', error));
-    });
+    if (!tickers || tickers.length === 0) return;
+
+    fetch(`/get_batch_stock_prices?tickers=${tickers.join(',')}`)
+      .then(response => response.json())
+      .then(data => {
+        tickers.forEach(ticker => {
+          if (data[ticker]) {
+            document.getElementById(`price-${ticker}`).textContent = `$${data[ticker].price}`;
+            updateStockChart(ticker, data[ticker].prices);
+          }
+        });
+      })
+      .catch(error => console.error('Error fetching stock prices:', error));
   }
 
 
@@ -445,7 +449,7 @@
   // Initialize stock prices and charts on page load
   document.addEventListener('DOMContentLoaded', function() {
     updateStockPrices();
-    setInterval(updateStockPrices, 30000);  // Update every 30 seconds
+    setInterval(updateStockPrices, 60000);  // Update every 60 seconds
   });
 
    
