@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const fab = document.getElementById('chat-fab');
-  const drawer = document.getElementById('chat-drawer');
-  const closeBtn = document.getElementById('chat-close');
-  const input = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('chat-send');
-  const messagesEl = document.getElementById('chat-messages');
+  var fab = document.getElementById('chat-fab');
+  var drawer = document.getElementById('chat-drawer');
+  var closeBtn = document.getElementById('chat-close');
+  var input = document.getElementById('chat-input');
+  var sendBtn = document.getElementById('chat-send');
+  var messagesEl = document.getElementById('chat-messages');
 
   if (!fab || !drawer) return;
 
@@ -25,6 +25,19 @@ document.addEventListener('DOMContentLoaded', function () {
     return div.innerHTML;
   }
 
+  function formatResponse(text) {
+    // Ensure it's a string
+    if (typeof text !== 'string') {
+      try {
+        text = JSON.stringify(text, null, 2);
+      } catch (e) {
+        text = String(text);
+      }
+    }
+    // Escape HTML then convert newlines to <br>
+    return escapeHtml(text).replace(/\n/g, '<br>');
+  }
+
   function scrollToBottom() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
@@ -32,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function addMessage(text, role) {
     var msg = document.createElement('div');
     msg.className = 'chat-message ' + role;
-    msg.innerHTML = escapeHtml(text);
+    msg.innerHTML = formatResponse(text);
     messagesEl.appendChild(msg);
     scrollToBottom();
   }
@@ -53,11 +66,14 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (data.success) {
-            addMessage('Trades confirmed and executed successfully!', 'assistant');
+            addMessage('Trades confirmed and executed successfully! Refreshing...', 'assistant');
+            btn.textContent = 'Confirmed';
+            setTimeout(function () { location.reload(); }, 1500);
           } else {
             addMessage('Trade confirmation failed: ' + (data.error || 'Unknown error'), 'assistant');
+            btn.disabled = false;
+            btn.textContent = 'Confirm Trades';
           }
-          btn.textContent = 'Confirmed';
         })
         .catch(function () {
           addMessage('Error confirming trades. Please try again.', 'assistant');
@@ -110,14 +126,37 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(function (data) {
         hideTyping();
         if (!data) return;
-        addMessage(data.response, 'assistant');
-        if (data.actions) {
+
+        var response = data.response;
+        if (typeof response !== 'string') {
+          try {
+            response = JSON.stringify(response, null, 2);
+          } catch (e) {
+            response = String(response);
+          }
+        }
+
+        addMessage(response, 'assistant');
+
+        if (data.actions && data.actions.length > 0) {
           for (var i = 0; i < data.actions.length; i++) {
             if (data.actions[i].type === 'pending_confirmation') {
               addConfirmButton();
+              break;
             }
           }
         }
+
+        // Update balance display on page if present
+        if (data.balance !== undefined) {
+          var balanceEls = document.querySelectorAll('.lc-stat-value, .balance-display');
+          balanceEls.forEach(function (el) {
+            if (el.textContent.indexOf('$') === 0) {
+              el.textContent = '$' + Number(data.balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+          });
+        }
+
         sendBtn.disabled = false;
       })
       .catch(function () {

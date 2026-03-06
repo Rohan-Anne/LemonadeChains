@@ -1823,7 +1823,21 @@ def api_chat():
             'balance': balance,
         })
 
-        response_text = result.get('output', 'Sorry, I could not process that.')
+        raw_output = result.get('output', 'Sorry, I could not process that.')
+        if isinstance(raw_output, list):
+            parts = []
+            for item in raw_output:
+                if isinstance(item, dict):
+                    parts.append(item.get('text', str(item)))
+                elif isinstance(item, str):
+                    parts.append(item)
+                else:
+                    parts.append(str(item))
+            response_text = '\n'.join(parts)
+        elif not isinstance(raw_output, str):
+            response_text = str(raw_output)
+        else:
+            response_text = raw_output
         add_to_chat_history(session, 'user', message)
         add_to_chat_history(session, 'assistant', response_text)
 
