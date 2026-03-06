@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 from functools import lru_cache
 from collections import defaultdict
 from google.oauth2 import service_account
+from backend.chat_agent import create_agent, get_chat_history_messages, add_to_chat_history
 
 load_dotenv()
 
@@ -736,6 +737,7 @@ def logout():
         session.pop('email', None)
         session.pop('name', None)
         session.pop('options_account', None)
+        session.pop('chat_history', None)
 
         csrf_state = session.get('state')
 
@@ -1795,6 +1797,54 @@ def run_record_portfolio_value():
 @app.route('/legal')
 def legal():
     return render_template('legal.html')
+
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    data = request.get_json()
+    message = data.get('message', '').strip()
+    if not message:
+        return jsonify({'error': 'Empty message'}), 400
+
+    try:
+        agent = create_agent(session, db)
+        account_data = session.get('options_account', {})
+        balance = account_data.get('balance', 100000)
+        user_name = session.get('name', 'Trader')
+
+        chat_history = get_chat_history_messages(session)
+        result = agent.invoke({
+            'input': message,
+            'chat_history': chat_history,
+            'user_name': user_name,
+            'balance': balance,
+        })
+
+        response_text = result.get('output', 'Sorry, I could not process that.')
+        add_to_chat_history(session, 'user', message)
+        add_to_chat_history(session, 'assistant', response_text)
+
+        actions = []
+        cart = session.get('cart', [])
+        if cart:
+            actions.append({'type': 'pending_confirmation'})
+
+        updated_account = session.get('options_account', {})
+        return jsonify({
+            'response': response_text,
+            'actions': actions,
+            'cart': cart,
+            'balance': updated_account.get('balance', balance),
+        })
+    except Exception as e:
+        print(f"Chat error: {e}")
+        return jsonify({
+            'response': 'Sorry, I encountered an error. Please try again.',
+            'actions': [],
+        })
 
 
 if __name__ == '__main__':

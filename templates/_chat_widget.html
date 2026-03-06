@@ -1,0 +1,31 @@
+<button id="chat-fab" class="chat-fab" title="Trading Assistant">
+  <i class="fas fa-comments"></i>
+</button>
+
+<div id="chat-drawer" class="chat-drawer">
+  <div class="chat-header">
+    <span class="chat-header-title">
+      <i class="fas fa-robot"></i> LemonadeBot
+    </span>
+    <button id="chat-close" class="chat-close-btn" title="Close">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div id="chat-messages" class="chat-messages">
+    <div class="chat-message welcome">
+      <strong>Hi {{ session['name'] }}!</strong> I'm your AI trading assistant. Try:
+      <br>- "What's the price of AAPL?"
+      <br>- "Buy 5 shares of TSLA"
+      <br>- "Show my portfolio"
+      <br>- "Show me AAPL options"
+    </div>
+  </div>
+
+  <div class="chat-input-bar">
+    <input id="chat-input" class="chat-input" type="text" placeholder="Ask me anything..." autocomplete="off">
+    <button id="chat-send" class="chat-send-btn" title="Send">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+</div>
