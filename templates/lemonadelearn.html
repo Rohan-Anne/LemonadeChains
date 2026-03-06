@@ -3,112 +3,42 @@
 {% block title %}LemonadeLearn{% endblock %}
 
 {% block content %}
-<style>
-  .hero-section {
-    background: linear-gradient(135deg, #3498db, #8e44ad);
-    color: white;
-    padding: 100px 0;
-    text-align: center;
-  }
-
-  .progress-card {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .article-navigation {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 40px 0;
-  }
-
-  .article-navigation .btn {
-    padding: 10px 20px;
-    border-radius: 50px;
-  }
-
-  .progress-bar {
-    background-color: #8e44ad;
-    height: 1.5rem;
-    border-radius: 50px;
-  }
-
-  .article-section {
-    margin-top: 50px;
-  }
-
-  .article-title {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #3498db;
-  }
-
-  .article-content {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    color: #555;
-  }
-
-  .progress {
-    height: 20px;
-    border-radius: 10px;
-  }
-
-  .image-placeholder {
-    margin: 20px 0;
-    background-color: #e0e0e0;
-    height: 250px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #aaa;
-  }
-
-  .image-placeholder img {
-    max-width: 100%;
-    height: auto;
-  }
-</style>
-
-<header class="hero-section">
+<header class="lc-hero-learn">
   <div class="container">
     <div class="row align-items-center">
       <div class="col-lg-8">
         <h1 class="display-4 mb-4">The Start of Your Financial Journey</h1>
-        <p class="lead">What you need to know about options trading from the get-go.</p>
+        <p class="lead" style="opacity:0.9;">What you need to know about options trading from the get-go.</p>
       </div>
       <div class="col-lg-4">
-        <div class="progress-card">
+        <div class="lc-progress-card">
           <h3 class="h5">Pick up where you left off</h3>
           <h4 class="h6 mt-3">{{ current_article_title }}</h4>
-          <div class="progress mt-2">
-            <div class="progress-bar" role="progressbar" style="width: {{ progress }}%;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">{{ progress }}%</div>
+          <div class="progress mt-2" style="height:20px; border-radius:10px;">
+            <div class="progress-bar" role="progressbar" style="width: {{ progress }}%; background-color: var(--color-secondary); border-radius: 10px;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100">{{ progress }}%</div>
           </div>
-          <a href="{{ next_article_url }}" class="btn btn-primary mt-3">Continue Learning</a>
+          <a href="{{ next_article_url }}" class="lc-btn-primary mt-3" style="display:inline-block;">Continue Learning</a>
         </div>
       </div>
     </div>
   </div>
 </header>
 
-<main class="container article-section">
-  <h2 class="article-title">{{ current_article_title }}</h2>
-  <div class="article-content">
+<main class="container" style="margin-top: 50px;">
+  <h2 class="lc-article-title">{{ current_article_title }}</h2>
+  <div class="lc-article-content">
     {{ current_article_content | safe }}
   </div>
 
-  <div class="article-navigation">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin:40px 0;">
     {% if previous_article_url %}
-      <a href="{{ previous_article_url }}" class="btn btn-outline-secondary">Previous</a>
+      <a href="{{ previous_article_url }}" class="lc-btn-outline">Previous</a>
     {% else %}
       <span></span>
     {% endif %}
-    
+
     {% if next_article_url %}
-      <a href="{{ next_article_url }}" class="btn btn-primary">Next</a>
+      <a href="{{ next_article_url }}" class="lc-btn-primary">Next</a>
     {% endif %}
   </div>
 </main>

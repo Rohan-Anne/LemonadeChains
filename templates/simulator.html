@@ -4,182 +4,23 @@
 
 {% block content %}
 
-<style>
-  :root {
-    --primary-color: #3498db;
-    --secondary-color: #8e44ad;
-    --light-gray: #f8f9fa;
-    --hover-gray: #f1f1f1;
-    --dark-gray: #6c757d;
-    --danger-color: #e74c3c;
-  }
-
-  /* General page styling */
-  .navbar-custom {
-    background-color: var(--light-gray);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  .hero-section {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 50px 0;
-  }
-  .card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    border-radius: 8px;
-  }
-  .card-header {
-    background-color: var(--light-gray);
-    border-bottom: 1px solid #e9ecef;
-  }
-  .chart-placeholder {
-    background-color: #e9ecef;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--dark-gray);
-    font-size: 1.2rem;
-  }
-  .btn-custom {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  .btn-custom:hover {
-    background-color: var(--secondary-color);
-    border-color: var(--secondary-color);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    color: white;
-  }
-  .btn-outline-light:hover {
-    background-color: white;
-    color: var(--secondary-color);
-  }
-  .btn-danger:hover {
-    background-color: var(--danger-color);
-    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.5);
-  }
-  .btn-secondary:hover {
-    background-color: var(--hover-gray);
-  }
-
-  /* Enhanced search bar styling */
-  .search-bar-container {
-    position: relative;
-    margin-bottom: 20px;
-  }
-  .search-bar {
-    width: 100%;
-    padding: 10px 20px;
-    border: 1px solid #ccc;
-    border-radius: 50px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    font-size: 16px;
-    transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  }
-  .search-bar:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  .search-results-container {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  .list-group-item {
-    cursor: pointer;
-    padding: 10px 20px;
-  }
-  .list-group-item:hover {
-    background-color: var(--hover-gray);
-  }
-
-  /* Watchlist styling */
-  .watchlist-container {
-    background-color: var(--light-gray);
-    padding: 10px;
-    border-radius: 8px;
-    height: 100%;
-  }
-  .watchlist-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--primary-color);
-  }
-  .watchlist-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    margin-bottom: 8px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease;
-  }
-  .watchlist-item:hover {
-    background-color: var(--hover-gray);
-  }
-  .stock-info {
-    display: flex;
-    flex-direction: column;
-    margin-right: 20px;
-  }
-  .stock-price {
-    font-size: 1.2rem;
-    color: var(--secondary-color);
-  }
-  .chart-container {
-    width: 100px;
-    height: 50px;
-  }
-
-  /* Responsive enhancements */
-  @media (max-width: 768px) {
-    .hero-section {
-      padding: 20px 0;
-    }
-    .btn-lg {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    .watchlist-item {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .stock-info {
-      margin-bottom: 10px;
-    }
-  }
-</style>
-
-<header class="hero-section">
-  <div class="container text-center">
-    <h1 class="display-4">{{ session['name'] }}, Welcome Back!</h1>
-    <div class="mt-3">
-      <h2 class="h4">Total Portfolio Value: ${{ "{:,.2f}".format(portfolio_value) }}</h2>
-      <h2 class="h4">Buying Power Available: ${{ "{:,.2f}".format(session['balance']) }}</h2>
-    </div>
-    <div class="mt-4">
-      <a href="#" class="btn btn-light btn-lg me-2">Simulator</a>
-      <a href="#" class="btn btn-outline-light btn-lg">LemonadeLearn</a>
+<div class="lc-dashboard-header">
+  <div class="container">
+    <h1>{{ session['name'] }}, Welcome Back!</h1>
+    <div>
+      <div class="lc-stat-card">
+        <div class="lc-stat-label">Portfolio Value</div>
+        <div class="lc-stat-value"><span class="lc-money-value">${{ "{:,.2f}".format(portfolio_value) }}</span></div>
+      </div>
+      <div class="lc-stat-card">
+        <div class="lc-stat-label">Buying Power</div>
+        <div class="lc-stat-value"><span class="lc-money-value">${{ "{:,.2f}".format(session['balance']) }}</span></div>
+      </div>
     </div>
   </div>
-</header>
+</div>
 
-<div class="card mt-4">
+<div class="lc-card mt-4">
   <div class="card-header">
     <h2 class="card-title h5 mb-0">Portfolio Value History</h2>
   </div>
@@ -190,15 +31,15 @@
 
 <main class="container my-5">
   <template id="expandable-template">
-    <div class="graph-and-details-container">
-      <div class="graph-container"></div>
-      <div class="details-table">
+    <div class="graph-and-details-container" style="display:flex; margin-top:10px; justify-content:center;">
+      <div class="graph-container" style="flex:2; margin-right:10px; height:600px; display:none;"></div>
+      <div class="details-table" style="flex:1; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; display:none;">
         <h4>Details</h4>
-        <table>
-          <tr><td><strong>Max Profit:</strong></td><td class="max-profit"></td></tr>
-          <tr><td><strong>Max Loss:</strong></td><td class="max-loss"></td></tr>
-          <tr><td><strong>Breakeven Stock Price:</strong></td><td class="breakeven-price"></td></tr>
-          <tr><td><strong>Current Stock Price:</strong></td><td class="current-stock-price">Hover over graph</td></tr>
+        <table style="width:100%; border-collapse:collapse;">
+          <tr><td style="padding:6px 8px;"><strong>Max Profit:</strong></td><td class="max-profit" style="padding:6px 8px;"></td></tr>
+          <tr><td style="padding:6px 8px;"><strong>Max Loss:</strong></td><td class="max-loss" style="padding:6px 8px;"></td></tr>
+          <tr><td style="padding:6px 8px;"><strong>Breakeven Stock Price:</strong></td><td class="breakeven-price" style="padding:6px 8px;"></td></tr>
+          <tr><td style="padding:6px 8px;"><strong>Current Stock Price:</strong></td><td class="current-stock-price" style="padding:6px 8px;">Hover over graph</td></tr>
         </table>
       </div>
     </div>
@@ -206,12 +47,13 @@
 
   <div class="row">
     <div class="col-lg-8">
-      <div class="search-bar-container">
-        <input type="text" id="search-bar" class="search-bar" placeholder="Search for stocks or tickers...">
-        <ul id="search-results" class="list-group search-results-container" style="display: none;"></ul>
+      <div class="lc-search-bar-container">
+        <i class="fas fa-search lc-search-icon"></i>
+        <input type="text" id="search-bar" class="lc-search-bar" placeholder="Search for stocks or tickers...">
+        <ul id="search-results" class="list-group lc-search-results" style="display: none;"></ul>
       </div>
-    
-      <div class="card mt-4">
+
+      <div class="lc-card mt-4">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">Stock Positions</h2>
         </div>
@@ -221,19 +63,19 @@
             <div class="stock-info mb-3">
               <h5>{{ position['ticker'] }} - {{ position['quantity'] }} shares</h5>
               <div>
-                <input type="number" id="sell-quantity-{{ position['ticker'] }}" placeholder="Quantity to sell" min="1" max="{{ position['quantity'] }}">
-                <button class="btn btn-danger" onclick="sellStock('{{ position['ticker'] }}', {{ position['quantity'] }}, this)">Sell</button>
+                <input type="number" id="sell-quantity-{{ position['ticker'] }}" class="lc-form-control" style="width:200px; display:inline-block;" placeholder="Qty to sell" min="1" max="{{ position['quantity'] }}">
+                <button class="lc-btn-danger" onclick="sellStock('{{ position['ticker'] }}', {{ position['quantity'] }}, this)">Sell</button>
               </div>
               <div id="mini-chart-{{ position['ticker'] }}" class="tv-widget-mini"></div>
             </div>
             {% endfor %}
           {% else %}
-            <p>No stock positions available.</p>
+            <p style="color: var(--text-secondary);">No stock positions available.</p>
           {% endif %}
         </div>
       </div>
-    
-      <div class="card mt-4">
+
+      <div class="lc-card mt-4">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">Options Positions</h2>
         </div>
@@ -242,19 +84,19 @@
             {% for key, option in positions.items() %}
             <div class="option-info mb-3">
               <h5>{{ option['ticker'] }} - {{ option['option_type'].capitalize() }} - Strike: {{ option['strike_price'] }} - Expiry: {{ option['expiration_date'] }} - Quantity: {{ option['quantity'] }}</h5>
-              <input type="number" id="sell-quantity-{{ option['ticker'] }}-{{ option['strike_price'] }}" min="1" max="{{ option['quantity'] }}" value="1">
-              <button class="btn btn-danger" onclick="sellOption('{{ option['ticker'] }}', {{ option['strike_price'] }}, '{{ option['option_type'] }}', '{{ option['expiration_date'] }}', {{ option['quantity'] }}, this)">Sell</button>
-              <button class="btn btn-secondary" onclick="toggleProfitGraph(this, '{{ option.ticker }}', {{ option.strike_price }}, '{{ option.option_type }}', '{{ option.expiration_date }}', 'profit-chart-{{ option.ticker }}-{{ option.strike_price }}')">Toggle Graph</button>
+              <input type="number" id="sell-quantity-{{ option['ticker'] }}-{{ option['strike_price'] }}" class="lc-form-control" style="width:120px; display:inline-block;" min="1" max="{{ option['quantity'] }}" value="1">
+              <button class="lc-btn-danger" onclick="sellOption('{{ option['ticker'] }}', {{ option['strike_price'] }}, '{{ option['option_type'] }}', '{{ option['expiration_date'] }}', {{ option['quantity'] }}, this)">Sell</button>
+              <button class="lc-btn-secondary" onclick="toggleProfitGraph(this, '{{ option.ticker }}', {{ option.strike_price }}, '{{ option.option_type }}', '{{ option.expiration_date }}', 'profit-chart-{{ option.ticker }}-{{ option.strike_price }}')">Toggle Graph</button>
               <div id="profit-chart-{{ option['ticker'] }}-{{ option['strike_price'] }}"></div>
             </div>
             {% endfor %}
           {% else %}
-            <p>No options positions available.</p>
+            <p style="color: var(--text-secondary);">No options positions available.</p>
           {% endif %}
         </div>
       </div>
 
-      <div class="card mt-4">
+      <div class="lc-card mt-4">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">Strategies</h2>
         </div>
@@ -263,7 +105,7 @@
             {% for strategy in strategies %}
             <div class="strategy-info mb-4">
               <h5>{{ strategy.name }}</h5>
-              <table class="table">
+              <table class="lc-table">
                 <thead>
                   <tr>
                     <th>Contract</th>
@@ -283,30 +125,28 @@
                   {% endfor %}
                 </tbody>
               </table>
-              <button class="btn btn-secondary" onclick="toggleStrategyGraph(this, decodeURIComponent('{{ strategy.name | urlencode }}'), 'strategy-chart-' + '{{ strategy.name | urlencode }}'))">Toggle Graph</button>
-              <button class="btn btn-danger" onclick="sellStrategy(decodeURIComponent('{{ strategy.name | urlencode }}'))">Sell Strategy</button>
-              <div id="strategy-chart-{{ strategy.name }}"></div> <!-- Use original strategy name for ID -->
+              <button class="lc-btn-secondary" onclick="toggleStrategyGraph(this, decodeURIComponent('{{ strategy.name | urlencode }}'), 'strategy-chart-' + '{{ strategy.name | urlencode }}'))">Toggle Graph</button>
+              <button class="lc-btn-danger" onclick="sellStrategy(decodeURIComponent('{{ strategy.name | urlencode }}'))">Sell Strategy</button>
+              <div id="strategy-chart-{{ strategy.name }}"></div>
 
             </div>
             {% endfor %}
           {% else %}
-            <p>No strategies available.</p>
+            <p style="color: var(--text-secondary);">No strategies available.</p>
           {% endif %}
         </div>
       </div>
     </div>
 
     <div class="col-lg-4">
-      <div class="card watchlist-container">
-        <div class="card-header">
-          <h2 class="card-title h5 mb-0 watchlist-title">Your Watchlist</h2>
-        </div>
-        <div class="card-body watchlist-scroll">
-          <ul id="watchlist" class="list-group">
+      <div class="lc-watchlist">
+        <div class="lc-watchlist-header">Your Watchlist</div>
+        <div style="padding: 0.5rem;">
+          <ul id="watchlist" class="list-group" style="list-style: none; padding: 0; margin: 0;">
             {% for ticker in watchlist %}
-            <li class="list-group-item watchlist-item">
+            <li class="lc-watchlist-item" style="list-style: none;">
               <div class="stock-info">
-                <a href="{{ url_for('stock_detail', ticker=ticker) }}" class="stock-link">{{ ticker }}</a>
+                <a href="{{ url_for('stock_detail', ticker=ticker) }}">{{ ticker }}</a>
                 <div class="stock-price" id="price-{{ ticker }}"></div>
               </div>
               <div class="chart-container">
@@ -321,32 +161,26 @@
   </div>
 </main>
 
-<!-- Include Chart.js for the stock growth charts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- Add Plotly.js library -->
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <script>
   function handleToggleStrategy(button, strategyName) {
-    console.log('Toggling strategy graph for:', strategyName);
     toggleStrategyGraph(button, strategyName, `strategy-chart-${strategyName}`);
   }
 
   function handleSellStrategy(strategyName) {
-    console.log('Selling strategy:', strategyName);
     sellStrategy(strategyName);
   }
 </script>
 
 <script>
-  // A utility function to escape single quotes and other characters in JavaScript strings
   function escapeStrategyName(name) {
-    return name.replace(/'/g, "\\'");  // Escape single quotes for JavaScript
+    return name.replace(/'/g, "\\'");
   }
 </script>
 
 <script>
-  // Fetch and update stock prices dynamically using batch endpoint
   function updateStockPrices() {
     const tickers = {{ watchlist | tojson }};
     if (!tickers || tickers.length === 0) return;
@@ -376,26 +210,34 @@
 
             const timestamps = data.timestamps;
             const portfolioValues = data.portfolio_values;
-
-            // Convert timestamps to Date objects for accurate plotting
             const dates = timestamps.map(ts => new Date(ts));
 
             const trace = {
-                x: dates,  // X-axis: full timestamps (Date objects)
-                y: portfolioValues,  // Y-axis: portfolio values
+                x: dates,
+                y: portfolioValues,
                 mode: 'lines+markers',
                 name: 'Portfolio Value'
             };
 
+            const theme = getPlotlyTheme();
             const layout = {
                 title: 'Portfolio Value Over Time',
                 xaxis: {
                     title: 'Date',
-                    tickformat: '%Y-%m-%d %H:%M:%S',  // Ensure time is shown in X-axis
-                    type: 'date'  // Make sure X-axis is treated as time
+                    tickformat: '%Y-%m-%d %H:%M:%S',
+                    type: 'date',
+                    gridcolor: theme.xaxis.gridcolor,
+                    zerolinecolor: theme.xaxis.zerolinecolor
                 },
-                yaxis: { title: 'Portfolio Value ($)' },
-                height: 400
+                yaxis: {
+                    title: 'Portfolio Value ($)',
+                    gridcolor: theme.yaxis.gridcolor,
+                    zerolinecolor: theme.yaxis.zerolinecolor
+                },
+                height: 400,
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: theme.font
             };
 
             Plotly.newPlot('portfolio-history-chart', [trace], layout);
@@ -403,21 +245,21 @@
         .catch(error => console.error('Error fetching portfolio history:', error));
 }
 
-  // Fetch and plot portfolio history when the page loads
   document.addEventListener('DOMContentLoaded', fetchPortfolioHistory);
 
-  // Update the stock growth chart using Chart.js
   function updateStockChart(ticker, prices) {
     const ctx = document.getElementById(`chart-${ticker}`).getContext('2d');
+    const style = getComputedStyle(document.documentElement);
+    const primaryColor = style.getPropertyValue('--color-primary').trim() || '#1B6EF3';
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: prices.map((_, index) => index),  // X-axis labels (could be dates)
+        labels: prices.map((_, index) => index),
         datasets: [{
           label: `${ticker} Price`,
-          data: prices,  // Y-axis data (prices)
-          backgroundColor: 'rgba(52, 152, 219, 0.2)',
-          borderColor: 'rgba(52, 152, 219, 1)',
+          data: prices,
+          backgroundColor: primaryColor + '33',
+          borderColor: primaryColor,
           borderWidth: 2,
           fill: true,
         }]
@@ -426,66 +268,50 @@
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: {
-            display: false  // Hide the X-axis labels for simplicity
-          },
+          x: { display: false },
           y: {
             ticks: {
-              callback: function(value) {
-                return '$' + value;  // Add dollar sign to Y-axis labels
-              }
+              callback: function(value) { return '$' + value; }
             }
           }
         },
-        plugins: {
-          legend: {
-            display: false  // Hide the legend
-          }
-        }
+        plugins: { legend: { display: false } }
       }
     });
   }
 
-  // Initialize stock prices and charts on page load
   document.addEventListener('DOMContentLoaded', function() {
     updateStockPrices();
-    setInterval(updateStockPrices, 60000);  // Update every 60 seconds
+    setInterval(updateStockPrices, 60000);
   });
 
-   
-  // Functionality for search bar and watchlist with debouncing to prevent rate limiting
+
   let searchTimeout;
   const searchBar = document.getElementById('search-bar');
   const resultsContainer = document.getElementById('search-results');
-  
+
   searchBar.addEventListener('input', function() {
     let query = this.value.trim();
 
-    // Clear previous timeout
     clearTimeout(searchTimeout);
 
-    // Hide results if query is too short
     if (query.length < 2) {
         resultsContainer.style.display = 'none';
         resultsContainer.innerHTML = '';
         return;
     }
 
-    // Show loading indicator
     resultsContainer.style.display = 'block';
-    resultsContainer.innerHTML = '<li class="list-group-item text-muted">Searching...</li>';
+    resultsContainer.innerHTML = '<li class="list-group-item" style="color:var(--text-muted);">Searching...</li>';
 
-    // Debounce: Wait 500ms after user stops typing before making request
     searchTimeout = setTimeout(function() {
         fetch(`/search_ticker?query=${encodeURIComponent(query)}`)
             .then(response => response.json())
             .then(data => {
-                console.log('Search results:', data);
-                resultsContainer.innerHTML = '';  // Clear previous results
+                resultsContainer.innerHTML = '';
 
-                // Handle error response
                 if (data.error) {
-                    resultsContainer.innerHTML = `<li class="list-group-item text-danger">${data.error}</li>`;
+                    resultsContainer.innerHTML = `<li class="list-group-item" style="color:var(--color-loss);">${data.error}</li>`;
                     return;
                 }
 
@@ -493,10 +319,8 @@
                     data.forEach(ticker => {
                         let listItem = document.createElement('li');
                         listItem.classList.add('list-group-item');
-                        listItem.style.cursor = 'pointer';
                         listItem.textContent = `${ticker.name} (${ticker.symbol}) - ${ticker.type}`;
 
-                        // Handle navigation to the correct detail page
                         listItem.onclick = function() {
                             if (ticker.type === 'EQUITY') {
                                 window.location.href = `/stock/${ticker.symbol}`;
@@ -505,25 +329,17 @@
                             }
                         };
 
-                        // Add hover effect
-                        listItem.addEventListener('mouseenter', function() {
-                            this.style.backgroundColor = '#f8f9fa';
-                        });
-                        listItem.addEventListener('mouseleave', function() {
-                            this.style.backgroundColor = '';
-                        });
-
                         resultsContainer.appendChild(listItem);
                     });
                 } else {
-                    resultsContainer.innerHTML = '<li class="list-group-item text-muted">No results found</li>';
+                    resultsContainer.innerHTML = '<li class="list-group-item" style="color:var(--text-muted);">No results found</li>';
                 }
             })
             .catch(error => {
                 console.error('Error fetching search results:', error);
-                resultsContainer.innerHTML = '<li class="list-group-item text-danger">Error searching. Please try again.</li>';
+                resultsContainer.innerHTML = '<li class="list-group-item" style="color:var(--color-loss);">Error searching. Please try again.</li>';
             });
-    }, 500); // Wait 500ms after user stops typing
+    }, 500);
   });
 
 
@@ -533,7 +349,7 @@ function sellStock(ticker, ownedQuantity, button) {
     const quantityToSell = document.getElementById(`sell-quantity-${ticker}`).value;
 
     if (quantityToSell <= 0 || quantityToSell > ownedQuantity) {
-        alert('Invalid quantity.');
+        showToast('Invalid quantity.', 'warning');
         button.disabled = false;
         return;
     }
@@ -546,10 +362,10 @@ function sellStock(ticker, ownedQuantity, button) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`Successfully sold ${quantityToSell} shares of ${ticker}.`);
-            location.reload();  // Reload the page to reflect changes
+            showToast(`Successfully sold ${quantityToSell} shares of ${ticker}.`, 'success');
+            location.reload();
         } else {
-            alert(`Error selling stock: ${data.error}`);
+            showToast(`Error selling stock: ${data.error}`, 'error');
             button.disabled = false;
         }
     })
@@ -559,18 +375,12 @@ function sellStock(ticker, ownedQuantity, button) {
 
 function sellOption(ticker, strike, optionType, expiration, ownedQuantity, button) {
     button.disabled = true;
-    console.log("Function sellOption called with parameters:");
-    console.log(`Ticker: ${ticker}, Strike: ${strike}, Option Type: ${optionType}, Expiration: ${expiration}, Owned Quantity: ${ownedQuantity}`);
 
-    // Always append .0 to the strike price when constructing the ID
     const formattedStrike = `${strike}.0`;
-    console.log(`Formatted Strike: ${formattedStrike}`);
 
     const quantityInputId = `sell-quantity-${ticker}-${formattedStrike}`;
-    console.log(`Constructed quantityInputId: ${quantityInputId}`);
 
     const quantityInputElement = document.getElementById(quantityInputId);
-    console.log("Quantity input element:", quantityInputElement);  // Debugging statement
 
     if (!quantityInputElement) {
         console.error(`Error: No input element found with ID ${quantityInputId}`);
@@ -578,14 +388,11 @@ function sellOption(ticker, strike, optionType, expiration, ownedQuantity, butto
     }
 
     const quantityToSell = quantityInputElement.value;
-    console.log(`Quantity to sell: ${quantityToSell}`);
 
     if (quantityToSell <= 0 || quantityToSell > ownedQuantity) {
-        alert('Invalid quantity.');
+        showToast('Invalid quantity.', 'warning');
         return;
     }
-
-    console.log(`Proceeding to sell ${quantityToSell} of ${ticker} options at strike ${strike}`);
 
 
     let new_expiration = new Date(expiration);
@@ -598,10 +405,8 @@ function sellOption(ticker, strike, optionType, expiration, ownedQuantity, butto
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: true // Ensure 12-hour clock with AM/PM   
+        hour12: true
     });
-
-
 
 
     fetch('/sell_option', {
@@ -611,17 +416,16 @@ function sellOption(ticker, strike, optionType, expiration, ownedQuantity, butto
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Response from server:", data);  // Log the response
         if (data.success) {
-            alert(`Successfully sold ${quantityToSell} ${optionType} option(s) of ${ticker} at strike ${strike}.`);
-            location.reload();  // Reload the page to reflect changes
+            showToast(`Successfully sold ${quantityToSell} ${optionType} option(s) of ${ticker} at strike ${strike}.`, 'success');
+            location.reload();
         } else {
-            alert(`Error selling option: ${data.error}`);
+            showToast(`Error selling option: ${data.error}`, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Failed to sell the option. Please try again.');
+        showToast('Failed to sell the option. Please try again.', 'error');
     })
     .finally(() => button.disabled = false);
 }
@@ -630,18 +434,16 @@ function sellOption(ticker, strike, optionType, expiration, ownedQuantity, butto
   function addToWatchlist(ticker) {
     fetch(`/add_to_watchlist`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker: ticker })
     })
     .then(response => response.json())
     .then(data => {
-        console.log('Add to watchlist response:', data); // Debugging: log the response
         if (data.success) {
             let watchlist = document.getElementById('watchlist');
             let listItem = document.createElement('li');
-            listItem.classList.add('list-group-item', 'watchlist-item');
+            listItem.classList.add('lc-watchlist-item');
+            listItem.style.listStyle = 'none';
             listItem.innerHTML = `
                 <div class="stock-info">
                     <div>${ticker}</div>
@@ -652,7 +454,6 @@ function sellOption(ticker, strike, optionType, expiration, ownedQuantity, butto
                 </div>`;
             watchlist.appendChild(listItem);
 
-            // Fetch and update the price and chart immediately
             fetch(`/get_stock_price?ticker=${ticker}`)
                 .then(response => response.json())
                 .then(stockData => {
@@ -669,33 +470,25 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
     const expandableContent = document.getElementById(graphId);
 
     if (expandableContent.innerHTML !== '') {
-      expandableContent.innerHTML = '';  // Collapse graph
+      expandableContent.innerHTML = '';
     } else {
       const expandableTemplate = document.getElementById('expandable-template').content.cloneNode(true);
       expandableContent.appendChild(expandableTemplate);
 
       const graphContainer = expandableContent.querySelector('.graph-container');
       const detailsTable = expandableContent.querySelector('.details-table');
-      
-      // Convert expiration date to YYMMDD format
+
       let expirationDateFormatted = new Date(expiration).toISOString().split('T')[0].replace(/-/g, '').slice(2);
 
-      // Extract the last two digits (the day part), increment it by 1, and pad with zero if necessary
       let incrementedDay = String(Number(expirationDateFormatted.slice(-2)) + 1).padStart(2, '0');
 
-      // Replace the last two digits of expirationDateFormatted with the incremented day
       expirationDateFormatted = expirationDateFormatted.slice(0, -2) + incrementedDay;
-      
-      // Convert strike price to 8 characters with leading zeros, and remove decimal points
+
       const strikeFormatted = (strike * 1000).toFixed(0).padStart(8, '0');
 
-      // Determine if it's a call (C) or put (P) option
       const optionType = type === 'call' ? 'C' : 'P';
 
-      // Construct the full options contract name (example: AAPL241018C00005000)
       const contractSymbol = `${ticker}${expirationDateFormatted}${optionType}${strikeFormatted}`;
-      // Log the constructed contract name for debugging
-      console.log("Full contract symbol:", contractSymbol);
 
 
       let new_expiration = new Date(expiration);
@@ -708,7 +501,7 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: true // Ensure 12-hour clock with AM/PM   
+        hour12: true
       })
 
 
@@ -719,8 +512,6 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
         type: type
       };
 
-      console.log("Payload for graph:", payload);
-
       fetch('/get_option_profit_data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -728,15 +519,12 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
       })
       .then(response => response.json())
       .then(data => {
-        console.log("Received data:", data);
         if (!data.error) {
           const { stock_price_range_losses, profits_losses, stock_price_range_gains, profits_gains, annotations } = data;
 
           let lossesTrace, gainsTrace;
-          // Define losses and gains traces
-          
+
           if (type === 'put') {
-                    // For put options, the green line should indicate profit (when stock price decreases)
                     gainsTrace = {
                         x: stock_price_range_losses,
                         y: profits_losses,
@@ -753,7 +541,6 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
                         line: { color: 'red', width: 2 }
                     };
                 } else {
-                    // For call options, the green line should indicate profit (when stock price increases)
                     lossesTrace = {
                         x: stock_price_range_losses,
                         y: profits_losses,
@@ -781,18 +568,22 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
             marker: { color: 'blue', size: 10 }
           };
 
-          // Plot the graph
-          Plotly.newPlot(graphContainer, [lossesTrace, gainsTrace, breakevenData]);
+          const theme = getPlotlyTheme();
+          Plotly.newPlot(graphContainer, [lossesTrace, gainsTrace, breakevenData], {
+            paper_bgcolor: theme.paper_bgcolor,
+            plot_bgcolor: theme.plot_bgcolor,
+            font: theme.font,
+            xaxis: { gridcolor: theme.xaxis.gridcolor },
+            yaxis: { gridcolor: theme.yaxis.gridcolor }
+          });
 
           graphContainer.style.display = 'block';
 
-          // Update hover event to show current stock price in details
           graphContainer.on('plotly_hover', function(data) {
             const stockPrice = data.points[0].x;
             detailsTable.querySelector('.current-stock-price').textContent = stockPrice.toFixed(2);
           });
 
-          // Update details table
           detailsTable.querySelector('.max-profit').textContent = annotations.max_profit.text;
           detailsTable.querySelector('.max-loss').textContent = annotations.max_loss.text;
           detailsTable.querySelector('.breakeven-price').textContent = annotations.breakeven.price.toFixed(2);
@@ -802,10 +593,7 @@ function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
     }
   }
 
-  // Helper function to extract contracts from a strategy
 function extractStrategyContracts(strategyName) {
-    // In this function, implement the logic to find the correct strategy's contracts
-    // For example:
     const strategies = {{ strategies | tojson }};
     for (let strategy of strategies) {
         if (strategy.name === strategyName) {
@@ -816,7 +604,6 @@ function extractStrategyContracts(strategyName) {
 }
 
 function toggleStrategyGraph(button, strategyName, graphId) {
-    console.log(`toggleStrategyGraph called for strategy: ${strategyName}`);
     const expandableContent = document.getElementById(graphId);
 
     if (!expandableContent) {
@@ -825,7 +612,7 @@ function toggleStrategyGraph(button, strategyName, graphId) {
     }
 
     if (expandableContent.innerHTML !== '') {
-        expandableContent.innerHTML = '';  // Collapse graph
+        expandableContent.innerHTML = '';
     } else {
         const expandableTemplate = document.getElementById('expandable-template').content.cloneNode(true);
         expandableContent.appendChild(expandableTemplate);
@@ -834,10 +621,10 @@ function toggleStrategyGraph(button, strategyName, graphId) {
         const detailsTable = expandableContent.querySelector('.details-table');
 
         feeded_strategy = extractStrategyContracts(strategyName).map(contract => ({
-                    contractSymbol: contract.contract,   // Use contract symbol
-                    strike: contract.strike,             // Strike price
-                    optionType: contract.option_type,    // Option type (call/put)
-                    expiration: contract.expiration      // Expiration date
+                    contractSymbol: contract.contract,
+                    strike: contract.strike,
+                    optionType: contract.option_type,
+                    expiration: contract.expiration
                 }));
 
         fetch('/get_combined_strategy_profit_data', {
@@ -860,18 +647,15 @@ function toggleStrategyGraph(button, strategyName, graphId) {
                     const currProfit = cumulativeProfits[i];
                     const stockPrice = stockPriceRange[i];
 
-                    // Detect breakeven point
                     if (prevProfit * currProfit < 0) {
-                        const breakevenStockPrice = stockPriceRange[i - 1] + 
+                        const breakevenStockPrice = stockPriceRange[i - 1] +
                             ((0 - prevProfit) / (currProfit - prevProfit)) * (stockPriceRange[i] - stockPriceRange[i - 1]);
                         breakevenPoints.push(breakevenStockPrice);
 
-                        // Add the breakeven point to both profitData and lossData
                         profitData.push({ x: breakevenStockPrice, y: 0 });
                         lossData.push({ x: breakevenStockPrice, y: 0 });
                     }
 
-                    // Separate into profit (>=0) and loss (<0)
                     if (currProfit >= 0) {
                         profitData.push({ x: stockPrice, y: currProfit });
                         lossData.push({ x: stockPrice, y: null });
@@ -881,7 +665,6 @@ function toggleStrategyGraph(button, strategyName, graphId) {
                     }
                 }
 
-                // Create traces
                 const gainsTrace = {
                     x: profitData.map(d => d.x),
                     y: profitData.map(d => d.y),
@@ -898,7 +681,6 @@ function toggleStrategyGraph(button, strategyName, graphId) {
                     line: { color: 'red', width: 2 }
                 };
 
-                // Breakeven points
                 const breakevenTrace = {
                     x: breakevenPoints,
                     y: Array(breakevenPoints.length).fill(0),
@@ -907,10 +689,14 @@ function toggleStrategyGraph(button, strategyName, graphId) {
                     marker: { color: 'blue', size: 10 }
                 };
 
+                const theme = getPlotlyTheme();
                 const layout = {
                     title: `Strategy ${strategyName} Cumulative Profit/Loss`,
-                    xaxis: { title: 'Stock Price' },
-                    yaxis: { title: 'Profit/Loss ($)' }
+                    xaxis: { title: 'Stock Price', gridcolor: theme.xaxis.gridcolor },
+                    yaxis: { title: 'Profit/Loss ($)', gridcolor: theme.yaxis.gridcolor },
+                    paper_bgcolor: theme.paper_bgcolor,
+                    plot_bgcolor: theme.plot_bgcolor,
+                    font: theme.font
                 };
 
                 Plotly.newPlot(graphContainer, [gainsTrace, lossesTrace, breakevenTrace], layout);
@@ -933,7 +719,6 @@ function toggleStrategyGraph(button, strategyName, graphId) {
 }
 
 function sellStrategy(strategyName) {
-    console.log(`sellStrategy called for strategy: ${strategyName}`);
     fetch('/sell_strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -942,23 +727,18 @@ function sellStrategy(strategyName) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(data.message);
-            location.reload();  // Reload the page to reflect the updated balance and strategies
+            showToast(data.message, 'success');
+            location.reload();
         } else {
-            alert(`Error selling strategy: ${data.error}`);
+            showToast(`Error selling strategy: ${data.error}`, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Failed to sell the strategy. Please try again.');
+        showToast('Failed to sell the strategy. Please try again.', 'error');
     });
 }
 
 </script>
 
 {% endblock %}
-
-
-
-
-

@@ -3,101 +3,67 @@
 {% block title %}{{ ticker }}{% endblock %}
 
 {% block content %}
-<style>
-  .navbar-custom { background-color: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  .hero-section { background: linear-gradient(135deg, #3498db, #8e44ad); color: white; padding: 50px 0; text-align: center; }
-  .card { box-shadow: 0 4px 6px rgba(3, 2, 2, 0.1); margin-bottom: 20px; border-radius: 8px; }
-  .btn-custom { background-color: #3498db; border-color: #3498db; color: white; transition: all 0.3s ease; }
-  .btn-custom:hover { background-color: #8e44ad; border-color: #8e44ad; color: white; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
-  .btn-danger:hover { box-shadow: 0 4px 8px rgba(231, 76, 60, 0.5); }
-  .central-chart-container { width: 100%; height: 400px; margin-top: 20px; position: relative; }
-  #tradingview-chart { height: 100% !important; }
-  .trade-forms { margin-top: 20px; }
-  .trade-form { margin-bottom: 20px; }
-  .expanded { max-height: none; }
-  .description { max-height: 100px; overflow: hidden; transition: max-height 0.3s ease; }
-  .description.expanded { max-height: 100%; }
-  .show-more { color: #3498db; cursor: pointer; display: block; margin-top: 10px; }
-  .show-more:hover { text-decoration: underline; }
-  
-  /* Watchlist Mini TradingView Charts */
-  .tv-widget-mini { width: 100%; height: 130px; }  
-  .watchlist-item { padding: 10px; transition: background-color 0.3s ease; }
-  .watchlist-item:hover { background-color: #f1f1f1; }
-  .stock-info { display: flex; flex-direction: column; }
-  
-  /* Additional hover effects for buttons */
-  .btn-success:hover { background-color: #28a745; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4); }
-</style>
 
-<header class="hero-section">
+<div class="lc-asset-header">
   <div class="container">
-    <h1 class="display-4">{{ name }} ({{ ticker }})</h1>
-    <h2 id="current-price" class="mt-4">${{ current_price }}</h2>
+    <h1>{{ name }} ({{ ticker }})</h1>
+    <div id="current-price" class="lc-asset-price">${{ current_price }}</div>
   </div>
-</header>
+</div>
 
 <main class="container my-5">
   <div class="row">
-    <!-- Main Stock Overview Section -->
     <div class="col-lg-8">
-      <div class="card">
+      <div class="lc-card">
         <div class="card-header">
           <h2 class="card-title h5 mb-0">{{ ticker }} Stock Overview</h2>
         </div>
         <div class="card-body">
-          <!-- TradingView Chart Container -->
           <div class="central-chart-container">
             <div id="tradingview-chart"></div>
           </div>
 
-          <p class="mt-4 description" id="description">{{ description }}</p>
-          <span class="show-more" id="show-more" onclick="toggleDescription()">Show More</span>
+          <p class="mt-4 lc-description" id="description">{{ description }}</p>
+          <span class="lc-show-more" id="show-more" onclick="toggleDescription()">Show More</span>
 
-          <button class="btn btn-custom mt-4" onclick="addToWatchlist('{{ ticker }}')">Add to Watchlist</button>
-          <button class="btn btn-danger mt-4" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
+          <div class="mt-4" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="lc-btn-primary" onclick="addToWatchlist('{{ ticker }}')">Add to Watchlist</button>
+            <button class="lc-btn-danger" onclick="removeFromWatchlist('{{ ticker }}')">Remove from Watchlist</button>
+            <a class="lc-btn-outline" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Data</a>
+          </div>
 
-          <a class="btn btn-custom mt-4" href="{{ url_for('options_detail', ticker=ticker) }}">View Options Data</a>
-
-          <!-- Trading Form Section -->
-          <div class="trade-forms">
+          <div class="lc-trade-panel">
             <form class="trade-form" onsubmit="addToCart('{{ ticker }}', 'buy', event)">
               <div class="form-group">
-                <label for="buy-quantity">Buy Quantity:</label>
-                <input type="number" id="buy-quantity" class="form-control" placeholder="Enter quantity" required>
+                <label for="buy-quantity" style="font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Buy Quantity:</label>
+                <input type="number" id="buy-quantity" class="lc-form-control" style="width:200px;" placeholder="Enter quantity" required>
               </div>
-              <button type="submit" class="btn btn-success">Buy in Cart</button>
+              <button type="submit" class="lc-btn-success mt-2">Buy in Cart</button>
             </form>
 
             <form class="trade-form" onsubmit="addToCart('{{ ticker }}', 'sell', event)">
               <div class="form-group">
-                <label for="sell-quantity">Sell Quantity:</label>
-                <input type="number" id="sell-quantity" class="form-control" placeholder="Enter quantity" required>
+                <label for="sell-quantity" style="font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem;">Sell Quantity:</label>
+                <input type="number" id="sell-quantity" class="lc-form-control" style="width:200px;" placeholder="Enter quantity" required>
               </div>
-              <button type="submit" class="btn btn-danger">Sell in Cart</button>
+              <button type="submit" class="lc-btn-danger mt-2">Sell in Cart</button>
             </form>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Watchlist Section -->
     <div class="col-lg-4">
-      <div class="card watchlist-container">
-        <div class="card-header">
-          <h2 class="card-title h5 mb-0 watchlist-title">Your Watchlist</h2>
-        </div>
-        <div class="card-body watchlist-scroll">
-          <ul id="watchlist" class="list-group">
+      <div class="lc-watchlist">
+        <div class="lc-watchlist-header">Your Watchlist</div>
+        <div style="padding: 0.25rem;">
+          <ul id="watchlist" class="list-group" style="list-style:none; padding:0; margin:0;">
             {% for item in watchlist %}
-            <li class="list-group-item watchlist-item" id="watchlist-item-{{ item }}">
+            <li class="lc-watchlist-item" id="watchlist-item-{{ item }}" style="list-style:none;">
               <div class="stock-info">
-                <a href="{{ url_for('stock_detail', ticker=item) }}" class="stock-link">
-                  <div>{{ item }}</div>
-                </a>
+                <a href="{{ url_for('stock_detail', ticker=item) }}">{{ item }}</a>
                 <div class="stock-price" id="price-{{ item }}"></div>
               </div>
-              <!-- TradingView Mini Chart -->
               <div id="mini-chart-{{ item }}" class="tv-widget-mini"></div>
             </li>
             {% endfor %}
@@ -108,11 +74,9 @@
   </div>
 </main>
 
-<!-- Include TradingView Widget Script -->
 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
 <script>
-  // Function to initialize TradingView chart for the main stock
   function loadTradingViewChart(ticker) {
     new TradingView.widget({
       "container_id": "tradingview-chart",
@@ -120,7 +84,7 @@
       "symbol": ticker,
       "interval": "D",
       "timezone": "Etc/UTC",
-      "theme": "light",
+      "theme": getTradingViewTheme(),
       "style": "1",
       "locale": "en",
       "toolbar_bg": "#f1f3f6",
@@ -135,7 +99,6 @@
     });
   }
 
-  // Function to initialize TradingView mini chart for each watchlist item
   function loadMiniChart(ticker) {
     new TradingView.widget({
       "container_id": `mini-chart-${ticker}`,
@@ -144,7 +107,7 @@
       "height": "130",
       "locale": "en",
       "dateRange": "1M",
-      "colorTheme": "light",
+      "colorTheme": getTradingViewTheme(),
       "trendLineColor": "#37a6ef",
       "underLineColor": "rgba(55, 166, 239, 0.15)",
       "isTransparent": true,
@@ -153,20 +116,19 @@
     });
   }
 
-  // Lazy Loading Optimization using IntersectionObserver
   function loadWatchlistCharts() {
-    const watchlistItems = document.querySelectorAll('.list-group-item.watchlist-item');
+    const watchlistItems = document.querySelectorAll('.lc-watchlist-item');
     const observer = new IntersectionObserver((entries, observer) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const ticker = entry.target.id.replace('watchlist-item-', '');
-          loadMiniChart(ticker);  // Load TradingView mini chart directly
-          observer.unobserve(entry.target);  // Stop observing once it's loaded
+          loadMiniChart(ticker);
+          observer.unobserve(entry.target);
         }
       });
     });
 
-    watchlistItems.forEach(item => observer.observe(item));  // Observe each watchlist item
+    watchlistItems.forEach(item => observer.observe(item));
   }
 
   function addToCart(ticker, action, event) {
@@ -188,9 +150,9 @@
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Item added to cart');
+            showToast('Item added to cart', 'success');
         } else {
-            alert('Error adding to cart');
+            showToast('Error adding to cart', 'error');
         }
     })
     .catch(error => console.error('Error:', error));
@@ -215,44 +177,39 @@
     .then(data => {
       if (data.price) {
         document.getElementById('current-price').textContent = `$${data.price}`;
-      } else {
-        console.error('Error: No price returned from API');
       }
     })
     .catch(error => console.error('Error fetching current stock/ETF price:', error));
   }
 
   document.addEventListener('DOMContentLoaded', function() {
-    loadTradingViewChart('{{ ticker }}');  // Load TradingView chart for the stock
+    loadTradingViewChart('{{ ticker }}');
     updateCurrentPrice('{{ ticker }}')
-    setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);  // Refresh the price every 30 seconds
-    loadWatchlistCharts();  // Load TradingView mini charts for the watchlist with lazy loading
+    setInterval(() => updateCurrentPrice('{{ ticker }}'), 30000);
+    loadWatchlistCharts();
   });
 </script>
 
 <script>
-  // Function to add a stock to the watchlist
   function addToWatchlist(ticker) {
     fetch('/add_to_watchlist', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker: ticker })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Stock added to watchlist');
+            showToast('Stock added to watchlist', 'success');
 
-            // Update the frontend to show the new stock in the watchlist
             const watchlist = document.getElementById('watchlist');
             const listItem = document.createElement('li');
-            listItem.classList.add('list-group-item', 'watchlist-item');
+            listItem.classList.add('lc-watchlist-item');
+            listItem.style.listStyle = 'none';
             listItem.id = `watchlist-item-${ticker}`;
             listItem.innerHTML = `
                 <div class="stock-info">
-                    <a href="/stock_detail?ticker=${ticker}" class="stock-link">
+                    <a href="/stock_detail?ticker=${ticker}">
                       <div>${ticker}</div>
                     </a>
                     <div class="stock-price" id="price-${ticker}"></div>
@@ -260,56 +217,34 @@
                 <div id="mini-chart-${ticker}" class="tv-widget-mini"></div>
             `;
             watchlist.appendChild(listItem);
-
-            // Load the mini chart for the added stock
             loadMiniChart(ticker);
         } else {
-            alert('Error adding to watchlist');
+            showToast('Error adding to watchlist', 'error');
         }
     })
     .catch(error => console.error('Error:', error));
   }
 
-  // Function to remove a stock from the watchlist
   function removeFromWatchlist(ticker) {
     fetch('/remove_from_watchlist', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker: ticker })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Stock removed from watchlist');
-
-            // Update the frontend to remove the stock from the watchlist
+            showToast('Stock removed from watchlist', 'success');
             const watchlistItem = document.getElementById(`watchlist-item-${ticker}`);
             if (watchlistItem) {
                 watchlistItem.remove();
             }
         } else {
-            alert('Error removing from watchlist');
+            showToast('Error removing from watchlist', 'error');
         }
     })
     .catch(error => console.error('Error:', error));
   }
 </script>
 
-
 {% endblock %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,279 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Options Detail</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
+{% extends 'base.html' %}
 
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f4f7fc;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-    
-        h1, h3 {
-    color: #2c3e50;
-    margin-bottom: 30px;
-    font-weight: 600;
-    font-size: 28px; /* Increase the font size for the title */
-    text-align: left;
-    width: 100%;
-}
+{% block title %}Options for {{ ticker }}{% endblock %}
 
-.container {
-    max-width: 1200px;
-    margin: 0px auto;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-radius: 10px;
-}
-
-        .table-container { margin-top: 0px;}
-        .filter-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px; /* Add space between filter groups */
-    margin-top: 20px; /* Add space between the title and filters */
-}
-.filter-group {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Minimize Button Styling */
-#minimizeStrategyBtn {
-    display: block;
-    margin-bottom: 10px;
-}
-
-/* Minimized Tab Styling */
-.minimized-tab {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #3498db;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Hidden Class */
-.hidden {
-    display: none;
-}
-
-
-
-
-.filter-group label {
-    margin-bottom: 8px; /* Space between label and input */
-    font-size: 14px;
-    font-weight: 500;
-    color: #2c3e50;
-}
-
-        .graph-and-details-container { display: flex; margin-top: 10px; justify-content: center; }
-        .graph-container { flex: 2; margin-right: 10px; height: 600px; width: 60%; display: none; text-align: center; }
-        .details-table {  
-            flex: 1; 
-            width: 30%; 
-            margin-left: 1px; 
-            border: 1px solid #ccc; 
-            background-color: #f9f9f9; 
-            display: none; /* Hidden initially */
-            text-align: left;
-        }
-        .strategy-details-table {
-            width: 100%; /* Make the details table fill the side panel */
-            border: 1px solid #ccc;
-            background-color: #f9f9f9;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-        
-        .glow {
-    box-shadow: 0 0 15px #00ff00;
-    transition: box-shadow 0.3s ease;
-}
-
-        table {
-            width: auto !important;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        .filter-group:last-child {
-    margin-right: 0;
-}
-
-.form-control {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-size: 16px;
-}
-        
-        th, td, tbody {
-            border: 1px solid black;
-            padding: 10px;
-            text-align: left;
-        }
-
-        /* Responsive layout when strategy builder is present */
-        .main-content {
-            width: 100%; /* Adjust width to make room for the strategy builder */
-            display: flex;
-            flex-wrap: wrap;
-            vertical-align: top;
-            margin-top: 60px;
-        }
-
-        .strategy-container {
-            width: 25%; /* Adjust the width of the strategy container */
-            height: 100%; /* Make sure it stretches */
-            position: fixed; /* Stay on the side */
-            right: 0;
-            top: 60px;
-            background-color: #f9f9f9;
-            padding: 10px;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1); /* Add a shadow for visibility */
-            overflow-y: auto; /* Enable vertical scrolling */
-        }
-
-        /* Strategy builder hidden initially */
-        .strategy-container.hidden {
-            display: none;
-        }
-
-        button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 18px;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.3s ease;
-}
-
-button:hover {
-    background-color: #2980b9;
-}
-
-button.btn-primary {
-    background-color: #2980b9;
-}
-
-button.btn-success {
-    background-color: #27ae60;
-}
-
-button.btn-danger {
-    background-color: #e74c3c;
-}
-
-button.btn-secondary {
-    background-color: #7f8c8d;
-}
-
-.table-container {
-    margin-top: 30px;
-}
-
-#tradingview-chart {
-    height: 375px !important; /* Increase the height here */
-    width: 100%;
-}
-
-
-@media (max-width: 768px) {
-    .filter-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .filter-group {
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
-
-    .graph-container {
-        width: 100%;
-        height: 400px;
-    }
-
-    .strategy-container {
-        position: relative;
-        width: 100%;
-        border-left: none;
-        box-shadow: none;
-        border-radius: 0;
-    }
-
-    h1 {
-        font-size: 24px; /* Smaller font on mobile */
-    }
-
-}
-
-        
-    </style>
-</head>
-<body>
-    {% extends 'base.html' %}
-
-    {% block title %}Options for {{ ticker }}{% endblock %}
-
-    {% block content %}
+{% block content %}
+<div class="lc-options-page">
     <div class="central-chart-container">
-            <div id="tradingview-chart"></div>
+        <div id="tradingview-chart"></div>
     </div>
     <div class="container">
       <div class="main-content">
-        <h1 class="mt-4">{{ ticker }} Options</h1>
+        <div style="flex:1; min-width:0;">
+        <h1 class="mt-4" style="font-size:1.75rem; font-weight:700;">{{ ticker }} Options</h1>
 
-        
-        
         <!-- Filter Section -->
-        <div class="filter-container">
+        <div class="lc-filter-bar">
             <div class="filter-group">
-                <label for="expiration-date">Expiration Date:</label>
-                <select id="expiration-date" class="form-control">
+                <label for="expiration-date">Expiration Date</label>
+                <select id="expiration-date" class="lc-form-control">
                     {% for date in expiration_dates %}
                     <option value="{{ date }}">{{ date }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="filter-group">
-                <label for="strike-range">Strike Price Range:</label>
-                <input type="number" id="strike-min" class="form-control" placeholder="Min Strike">
-                <input type="number" id="strike-max" class="form-control" placeholder="Max Strike">
+                <label for="strike-range">Strike Price Range</label>
+                <input type="number" id="strike-min" class="lc-form-control" placeholder="Min Strike" style="margin-bottom:4px;">
+                <input type="number" id="strike-max" class="lc-form-control" placeholder="Max Strike">
             </div>
             <div class="filter-group">
-                <label for="option-type">Option Type:</label>
-                <select id="option-type" class="form-control">
+                <label for="option-type">Option Type</label>
+                <select id="option-type" class="lc-form-control">
                     <option value="both">Both</option>
                     <option value="call">Calls</option>
                     <option value="put">Puts</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <button id="apply-filters" class="btn btn-primary">Apply Filters</button>
+            <div class="filter-group" style="justify-content:flex-end;">
+                <button id="apply-filters" class="lc-btn-primary">Apply Filters</button>
             </div>
         </div>
 
         <!-- Calls Options Table -->
-        <div class="table-container">
-          <h3>Call Options</h3>
-          <table class="table table-striped">
+        <div style="margin-top:1.5rem;">
+          <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.75rem;">Call Options</h3>
+          <div style="overflow-x:auto;">
+          <table class="lc-table">
             <thead>
               <tr>
                 <th>Contract Name</th>
@@ -291,15 +62,16 @@ button.btn-secondary {
               </tr>
             </thead>
             <tbody id="calls-table-body">
-              <!-- Call options will be loaded here -->
             </tbody>
           </table>
+          </div>
         </div>
 
         <!-- Puts Options Table -->
-        <div class="table-container">
-          <h3>Put Options</h3>
-          <table class="table table-striped">
+        <div style="margin-top:1.5rem;">
+          <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.75rem;">Put Options</h3>
+          <div style="overflow-x:auto;">
+          <table class="lc-table">
             <thead>
               <tr>
                 <th>Contract Name</th>
@@ -317,18 +89,15 @@ button.btn-secondary {
               </tr>
             </thead>
             <tbody id="puts-table-body">
-              <!-- Put options will be loaded here -->
             </tbody>
           </table>
+          </div>
         </div>
 
         <!-- Placeholder for Expandable Graph and Details Section -->
         <template id="expandable-template">
           <div class="graph-and-details-container">
-            <!-- Graph Container -->
             <div class="graph-container"></div>
-            
-            <!-- Individual Option Details Table -->
             <div class="details-table">
               <h4>Details</h4>
               <table>
@@ -340,16 +109,16 @@ button.btn-secondary {
             </div>
           </div>
         </template>
-      </div>
+        </div>
 
       <!-- Strategy Builder -->
-    <div class="strategy-container hidden" id="strategyContainer">
-        <button id="minimizeStrategyBtn" class="btn btn-secondary" onclick="minimizeStrategy()">Minimize</button>
-        <h4>Strategy Details</h4>
+      <div class="lc-strategy-container hidden" id="strategyContainer">
+        <button id="minimizeStrategyBtn" class="lc-btn-secondary" style="width:100%; margin-bottom:1rem;" onclick="minimizeStrategy()">Minimize</button>
+        <h4 style="font-size:1.1rem; font-weight:600; margin-bottom:1rem;">Strategy Details</h4>
 
-        <div class="form-group">
-            <label for="strategy-name">Strategy Name:</label>
-            <input type="text" class="form-control" id="strategy-name" placeholder="Enter a name for your strategy">
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label for="strategy-name" style="font-size:0.85rem; font-weight:500; color:var(--text-secondary); margin-bottom:0.25rem; display:block;">Strategy Name</label>
+            <input type="text" class="lc-form-control" id="strategy-name" placeholder="Enter a name for your strategy">
         </div>
 
         <table class="strategy-details-table">
@@ -359,12 +128,12 @@ button.btn-secondary {
             <tr><td><strong>Current Stock Price:</strong></td><td class="strategy-current-stock-price">Hover over graph</td></tr>
         </table>
 
-        <div id="strategyGraph" style="width: 100%; height: 300px; margin-top: 20px;"></div>
+        <div id="strategyGraph" style="width: 100%; height: 300px; margin-top: 1rem;"></div>
 
-        <button id="buyStrategyBtn" class="btn btn-success" onclick="buyStrategy()">Buy Strategy</button>
+        <button id="buyStrategyBtn" class="lc-btn-success" style="width:100%; margin-top:1rem;" onclick="buyStrategy()">Buy Strategy</button>
 
-        <h5>Contracts in Strategy:</h5>
-        <table id="strategyContractsTable" style="width:100%; margin-top: 10px;">
+        <h5 style="font-size:0.95rem; font-weight:600; margin-top:1.5rem; margin-bottom:0.5rem;">Contracts in Strategy:</h5>
+        <table id="strategyContractsTable" class="lc-table" style="margin-top: 0.5rem;">
             <thead>
             <tr>
                 <th>Contract Symbol</th>
@@ -374,32 +143,30 @@ button.btn-secondary {
             </tr>
             </thead>
             <tbody id="strategyContractsBody">
-            <!-- Contracts will be added here dynamically -->
             </tbody>
         </table>
-    </div>
+      </div>
+      </div>
 
     <!-- Minimized Strategy Builder Tab -->
-    <div class="minimized-tab hidden" id="minimizedStrategyTab" onclick="expandStrategy()">Expand Strategy Builder</div>
+    <div class="lc-strategy-fab hidden" id="minimizedStrategyTab" onclick="expandStrategy()">Expand Strategy Builder</div>
 
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    
-    <script>
-      let strategy = [];  // This will store the contracts added to the strategy
-      let addedContracts = new Set();  // Store added contract symbols to track toggles
 
-      // Minimize the strategy builder
+    <script>
+      let strategy = [];
+      let addedContracts = new Set();
+
 function minimizeStrategy() {
     document.getElementById('strategyContainer').classList.add('hidden');
     document.getElementById('minimizedStrategyTab').classList.remove('hidden');
 }
 
-// Expand the strategy builder from the minimized tab
 function expandStrategy() {
     document.getElementById('strategyContainer').classList.remove('hidden');
     document.getElementById('minimizedStrategyTab').classList.add('hidden');
 }
-
 
 
 function loadTradingViewChart(ticker) {
@@ -409,7 +176,7 @@ function loadTradingViewChart(ticker) {
       "symbol": ticker,
       "interval": "D",
       "timezone": "Etc/UTC",
-      "theme": "light",
+      "theme": getTradingViewTheme(),
       "style": "1",
       "locale": "en",
       "toolbar_bg": "#f1f3f6",
@@ -426,22 +193,16 @@ function loadTradingViewChart(ticker) {
   }
 
 
-        
-
-
       function toggleStrategyVisibility(show) {
           const strategyContainer = document.getElementById('strategyContainer');
-          const mainContent = document.querySelector('.main-content');
           const minimizedTab = document.getElementById('minimizedStrategyTab');
-          
+
           if (show) {
               strategyContainer.classList.remove('hidden');
               minimizedTab.classList.add('hidden');
-              mainContent.style.width = '70%';  // Adjust main content width when strategy builder is shown
           } else {
               strategyContainer.classList.add('hidden');
               minimizedTab.classList.add('hidden');
-              mainContent.style.width = '100%'; // Full width when strategy builder is hidden
           }
       }
 
@@ -458,17 +219,15 @@ function loadTradingViewChart(ticker) {
 
         fetch('/add_to_cart', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cartItem)
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Item added to cart successfully!');
+                showToast('Item added to cart successfully!', 'success');
             } else {
-                alert('Failed to add item to cart.');
+                showToast('Failed to add item to cart.', 'error');
             }
         })
         .catch(error => {
@@ -492,23 +251,18 @@ function loadTradingViewChart(ticker) {
             option_type: optionType
         };
 
-        strategy = [];  // Clear the strategy array
-        addedContracts.clear();  // Clear the added contracts set
+        strategy = [];
+        addedContracts.clear();
 
-        // Update the strategy contracts table (which will now be empty)
         updateStrategyContractsTable();
 
-        // Hide the strategy builder since there are no contracts
         toggleStrategyVisibility(false);
 
-        // Clear the strategy name input field
         document.getElementById('strategy-name').value = '';
 
         fetch('/get_options_data', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(filters)
         })
         .then(response => response.json())
@@ -522,7 +276,7 @@ function loadTradingViewChart(ticker) {
 
       function populateTable(tableBodyId, data, optionType, expirationDate) {
         const tableBody = document.getElementById(tableBodyId);
-        tableBody.innerHTML = '';  // Clear the table body
+        tableBody.innerHTML = '';
 
         data.forEach(option => {
             const expiration = new Date(expirationDate).toLocaleDateString('en-US') + ', 11:59:59 PM';
@@ -540,23 +294,15 @@ function loadTradingViewChart(ticker) {
                 <td>${option.volume}</td>
                 <td>${option.openInterest}</td>
                 <td>${option.impliedVolatility}%</td>
-                <td>
-                  <!-- Buy Button -->
-                  <button class="btn btn-success" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'buy')">Buy in Cart</button>
-                  
-                  <!-- Sell Button -->
-                  <button class="btn btn-danger" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'sell')">Sell in Cart</button>
-                  
-                  <!-- Toggle Graph Button -->
-                  <button class="btn btn-secondary" onclick="toggleProfitGraph(this, '${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', '${graphId}')">Toggle Graph</button>
-
-                  <!-- Add to Strategy Button -->
-                  <button class="btn btn-primary" id="strategy-btn-${option.contractSymbol}" onclick="toggleOptionInStrategy(this, '${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}')">+</button>
+                <td style="white-space:nowrap;">
+                  <button class="lc-btn-success" style="font-size:0.8rem; padding:4px 10px;" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'buy')">Buy</button>
+                  <button class="lc-btn-danger" style="font-size:0.8rem; padding:4px 10px;" onclick="addToCart('${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', 'sell')">Sell</button>
+                  <button class="lc-btn-secondary" style="font-size:0.8rem; padding:4px 10px;" onclick="toggleProfitGraph(this, '${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}', '${graphId}')">Graph</button>
+                  <button class="lc-btn-primary" style="font-size:0.8rem; padding:4px 10px;" id="strategy-btn-${option.contractSymbol}" onclick="toggleOptionInStrategy(this, '${option.contractSymbol}', ${option.strike}, '${optionType}', '${expiration}')">+</button>
                 </td>
             `;
             tableBody.appendChild(row);
 
-            // Add an expandable row for each contract
             const expandableRow = document.createElement('tr');
             expandableRow.innerHTML = `
                 <td colspan="12">
@@ -569,7 +315,7 @@ function loadTradingViewChart(ticker) {
 
       function updateStrategyContractsTable() {
         const strategyContractsBody = document.getElementById('strategyContractsBody');
-        strategyContractsBody.innerHTML = '';  // Clear existing content
+        strategyContractsBody.innerHTML = '';
 
         strategy.forEach(contract => {
             const row = document.createElement('tr');
@@ -581,17 +327,15 @@ function loadTradingViewChart(ticker) {
             `;
             strategyContractsBody.appendChild(row);
         });
-    }   
+    }
 
       function toggleOptionInStrategy(button, contractSymbol, strike, optionType, expiration) {
           const contractId = contractSymbol;
           if (addedContracts.has(contractId)) {
-              // Remove from strategy
               strategy = strategy.filter(option => option.contractSymbol !== contractSymbol);
               addedContracts.delete(contractId);
-              button.classList.remove('glow');  // Remove glow effect
+              button.classList.remove('lc-strategy-selected');
           } else {
-              // Add to strategy
               strategy.push({
                   contractSymbol: contractSymbol,
                   strike: strike,
@@ -599,7 +343,7 @@ function loadTradingViewChart(ticker) {
                   expiration: expiration
               });
               addedContracts.add(contractId);
-              button.classList.add('glow');  // Add glow effect
+              button.classList.add('lc-strategy-selected');
           }
 
           if (strategy.length === 0) {
@@ -615,7 +359,7 @@ function loadTradingViewChart(ticker) {
     const strategyName = document.getElementById('strategy-name').value;
 
     if (!strategyName) {
-        alert('Please enter a name for your strategy.');
+        showToast('Please enter a name for your strategy.', 'warning');
         return;
     }
 
@@ -624,37 +368,30 @@ function loadTradingViewChart(ticker) {
         strike: contract.strike,
         expiration: contract.expiration,
         option_type: contract.optionType,
-        action: 'buy',  // Assuming we are only buying strategies
+        action: 'buy',
     }));
 
-    // Add the strategy as a whole to the cart
     fetch('/add_to_cart', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ strategy: strategyData, name: strategyName, type: 'strategy' })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Strategy added to cart successfully!');
+            showToast('Strategy added to cart successfully!', 'success');
 
-            // Reset the strategy after successful purchase
-            strategy = [];  // Clear the strategy array
-            addedContracts.clear();  // Clear the added contracts set
+            strategy = [];
+            addedContracts.clear();
 
-            // Update the strategy contracts table (which will now be empty)
             updateStrategyContractsTable();
 
-            // Hide the strategy builder since there are no contracts
             toggleStrategyVisibility(false);
 
-            // Clear the strategy name input field
             document.getElementById('strategy-name').value = '';
 
         } else {
-            alert('Failed to add strategy to cart.');
+            showToast('Failed to add strategy to cart.', 'error');
         }
     })
     .catch(error => {
@@ -664,45 +401,37 @@ function loadTradingViewChart(ticker) {
 
 
       function toggleProfitGraph(button, ticker, strike, type, expiration, graphId) {
-        console.log(`Toggle graph clicked for: ${ticker} ${strike} ${type} ${expiration}`); 
     const expandableContent = document.getElementById(graphId);
 
     if (expandableContent.innerHTML !== '') {
-        expandableContent.innerHTML = '';  // Collapse graph
+        expandableContent.innerHTML = '';
         button.disabled = false;
     } else {
         button.disabled = true;
-        
+
         const expandableTemplate = document.getElementById('expandable-template').content.cloneNode(true);
         expandableContent.appendChild(expandableTemplate);
 
         const graphContainer = expandableContent.querySelector('.graph-container');
         const detailsTable = expandableContent.querySelector('.details-table');
-        
+
         const payload = { ticker, strike, expiration, type };
-        console.log(`Payload for graph:`, payload);
 
         fetch('/get_option_profit_data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(response => {
-        console.log('Received response:', response);
-        return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            console.log('Received data:', data);
             if (!data.error) {
                 const { stock_price_range_losses, profits_losses, stock_price_range_gains, profits_gains, annotations } = data;
-                
-                // Define losses (below breakeven) and gains (above breakeven)
+
                 let lossesTrace, gainsTrace;
 
                 if (type === 'put') {
-                    // For put options, we expect profits to be when prices decrease
                     gainsTrace = {
-                        x: stock_price_range_losses,  // Profits in green when prices go down
+                        x: stock_price_range_losses,
                         y: profits_losses,
                         mode: 'lines',
                         name: 'Gains',
@@ -710,16 +439,15 @@ function loadTradingViewChart(ticker) {
                     };
 
                     lossesTrace = {
-                        x: stock_price_range_gains,  // Losses in red when prices go up
+                        x: stock_price_range_gains,
                         y: profits_gains,
                         mode: 'lines',
                         name: 'Losses',
                         line: { color: 'red', width: 2 }
                     };
                 } else {
-                    // For call options, profits occur when prices rise
                     lossesTrace = {
-                        x: stock_price_range_losses,  // Losses in red when prices go down
+                        x: stock_price_range_losses,
                         y: profits_losses,
                         mode: 'lines',
                         name: 'Losses',
@@ -727,7 +455,7 @@ function loadTradingViewChart(ticker) {
                     };
 
                     gainsTrace = {
-                        x: stock_price_range_gains,  // Profits in green when prices go up
+                        x: stock_price_range_gains,
                         y: profits_gains,
                         mode: 'lines',
                         name: 'Gains',
@@ -735,7 +463,6 @@ function loadTradingViewChart(ticker) {
                     };
                 }
 
-                // Breakeven point marker
                 const breakevenData = {
                     x: [annotations.breakeven.price],
                     y: [0],
@@ -746,23 +473,27 @@ function loadTradingViewChart(ticker) {
                     marker: { color: 'blue', size: 10 }
                 };
 
-                // Plot the data
-                Plotly.newPlot(graphContainer, [lossesTrace, gainsTrace, breakevenData]);
+                const theme = getPlotlyTheme();
+                Plotly.newPlot(graphContainer, [lossesTrace, gainsTrace, breakevenData], {
+                    paper_bgcolor: theme.paper_bgcolor,
+                    plot_bgcolor: theme.plot_bgcolor,
+                    font: theme.font,
+                    xaxis: { gridcolor: theme.xaxis.gridcolor },
+                    yaxis: { gridcolor: theme.yaxis.gridcolor }
+                });
 
-                graphContainer.style.display = 'block';  // Show the graph
+                graphContainer.style.display = 'block';
 
-                // Update hover event to show current stock price in details
                 graphContainer.on('plotly_hover', function(data) {
                     const stockPrice = data.points[0].x;
                     detailsTable.querySelector('.current-stock-price').textContent = stockPrice.toFixed(2);
                 });
 
-                // Update details table with max profit, max loss, and breakeven info
                 detailsTable.querySelector('.max-profit').textContent = annotations.max_profit.text;
                 detailsTable.querySelector('.max-loss').textContent = annotations.max_loss.text;
                 detailsTable.querySelector('.breakeven-price').textContent = annotations.breakeven.price.toFixed(2);
 
-                detailsTable.style.display = 'block';  // Show the details table
+                detailsTable.style.display = 'block';
             }
         })
         .catch(error => {
@@ -775,12 +506,11 @@ function loadTradingViewChart(ticker) {
 
 function updateStrategyGraph() {
     if (strategy.length === 0) {
-        alert('Please add some options to the strategy.');
+        showToast('Please add some options to the strategy.', 'warning');
         return;
     }
 
     toggleStrategyVisibility(true);
-    console.log(strategy);
 
     fetch('/get_combined_strategy_profit_data', {
         method: 'POST',
@@ -791,16 +521,14 @@ function updateStrategyGraph() {
     .then(data => {
         if (data.error) {
             console.error('Error generating strategy graph:', data.error);
-            alert('Error generating strategy graph. Check the console for details.');
+            showToast('Error generating strategy graph.', 'error');
         } else {
             const stockPriceRange = data.stock_price_range;
             const cumulativeProfits = data.cumulative_profits;
 
-            // Calculate max profit and max loss
             const maxProfit = Math.max(...cumulativeProfits);
             const maxLoss = Math.min(...cumulativeProfits);
 
-            // Identify breakeven points (where profit/loss intersects the x-axis)
             const breakevenPoints = [];
             const profitData = [];
             const lossData = [];
@@ -810,28 +538,24 @@ function updateStrategyGraph() {
                 const currProfit = cumulativeProfits[i];
                 const stockPrice = stockPriceRange[i];
 
-                // Detect breakeven point
                 if (prevProfit * currProfit < 0) {
-                    const breakevenStockPrice = stockPriceRange[i - 1] + 
+                    const breakevenStockPrice = stockPriceRange[i - 1] +
                         ((0 - prevProfit) / (currProfit - prevProfit)) * (stockPriceRange[i] - stockPriceRange[i - 1]);
                     breakevenPoints.push(breakevenStockPrice);
 
-                    // Add the breakeven point to both profitData and lossData for smooth transition
                     profitData.push({ x: breakevenStockPrice, y: 0 });
                     lossData.push({ x: breakevenStockPrice, y: 0 });
                 }
 
-                // Separate the points into profit (>=0) and loss (<0)
                 if (currProfit >= 0) {
                     profitData.push({ x: stockPrice, y: currProfit });
-                    lossData.push({ x: stockPrice, y: null });  // Ensure no loss point at profit range
+                    lossData.push({ x: stockPrice, y: null });
                 } else {
                     lossData.push({ x: stockPrice, y: currProfit });
-                    profitData.push({ x: stockPrice, y: null });  // Ensure no profit point at loss range
+                    profitData.push({ x: stockPrice, y: null });
                 }
             }
 
-            // Create traces for profit and loss with no overlap at breakeven points
             const gainsTrace = {
                 x: profitData.map(d => d.x),
                 y: profitData.map(d => d.y),
@@ -848,35 +572,35 @@ function updateStrategyGraph() {
                 line: { color: 'red', width: 2 }
             };
 
-            // Breakeven points (show breakeven markers at x-axis intersections)
             const breakevenTrace = {
                 x: breakevenPoints,
-                y: Array(breakevenPoints.length).fill(0), // Zero profit at breakeven
+                y: Array(breakevenPoints.length).fill(0),
                 mode: 'markers+text',
                 name: 'Breakeven',
                 marker: { color: 'blue', size: 10 }
             };
 
+            const theme = getPlotlyTheme();
             const layout = {
                 title: 'Combined Strategy Profit/Loss',
-                xaxis: { title: 'Stock Price' },
-                yaxis: { title: 'Profit/Loss ($)' }
+                xaxis: { title: 'Stock Price', gridcolor: theme.xaxis.gridcolor },
+                yaxis: { title: 'Profit/Loss ($)', gridcolor: theme.yaxis.gridcolor },
+                paper_bgcolor: theme.paper_bgcolor,
+                plot_bgcolor: theme.plot_bgcolor,
+                font: theme.font
             };
 
-            // Plot both profit and loss traces along with the breakeven points
             Plotly.newPlot('strategyGraph', [gainsTrace, lossesTrace, breakevenTrace], layout);
 
-            document.getElementById('strategyGraph').style.display = 'block';  // Show strategy graph
+            document.getElementById('strategyGraph').style.display = 'block';
 
-            // Update the strategy details panel with max profit, max loss, and breakeven prices
             const strategyDetailsTable = document.querySelector('.strategy-details-table');
             strategyDetailsTable.querySelector('.strategy-max-profit').textContent = `$${maxProfit.toFixed(2)}`;
             strategyDetailsTable.querySelector('.strategy-max-loss').textContent = `$${maxLoss.toFixed(2)}`;
             strategyDetailsTable.querySelector('.strategy-breakeven-prices').textContent = breakevenPoints.join(', ');
 
-            strategyDetailsTable.style.display = 'block';  // Show the strategy details table
+            strategyDetailsTable.style.display = 'block';
 
-            // Add hover functionality to update current stock price
             const graphContainer = document.getElementById('strategyGraph');
             graphContainer.on('plotly_hover', function(data) {
                 const stockPrice = data.points[0].x;
@@ -888,32 +612,11 @@ function updateStrategyGraph() {
 }
 
 
-
-    
       document.addEventListener('DOMContentLoaded', function() {
-          document.getElementById('apply-filters').click();  // Automatically apply filters on page load
+          document.getElementById('apply-filters').click();
           loadTradingViewChart('{{ ticker }}');
       });
 
-
-
     </script>
-    {% endblock %}
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</div>
+{% endblock %}

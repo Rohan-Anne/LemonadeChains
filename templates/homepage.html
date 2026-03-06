@@ -3,71 +3,12 @@
 {% block title %}Welcome Back{% endblock %}
 
 {% block content %}
-<style>
-  .welcome-section {
-    background: linear-gradient(135deg, #3498db, #8e44ad);
-    color: white;
-    padding: 100px 0;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-
-  .welcome-box {
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 50px;
-    border-radius: 15px;
-    max-width: 600px;
-    width: 100%;
-  }
-
-  .welcome-box h1 {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 30px;
-  }
-
-  .btn-welcome {
-    font-size: 1.2rem;
-    padding: 12px 40px;
-    border-radius: 50px;
-    margin: 10px;
-  }
-
-  .btn-simulator {
-    background-color: #fff;
-    color: #3498db;
-    font-weight: bold;
-    border: 2px solid transparent;
-  }
-
-  .btn-simulator:hover {
-    background-color: transparent;
-    color: #fff;
-    border-color: #fff;
-  }
-
-  .btn-learn {
-    border: 2px solid #fff;
-    color: #fff;
-    font-weight: bold;
-  }
-
-  .btn-learn:hover {
-    background-color: #fff;
-    color: #3498db;
-  }
-</style>
-
-<header class="welcome-section">
-  <div class="welcome-box">
+<header class="lc-hero-welcome">
+  <div class="lc-welcome-box">
     <h1>Welcome Back, {{ session['name'] }}!</h1>
     <div>
-      <a href="/simulator" class="btn btn-welcome btn-simulator">Trading Simulator</a>
-      <a href="/lemonadelearn" class="btn btn-welcome btn-learn">LemonadeLearn</a>
+      <a href="/simulator" class="lc-btn-primary lc-btn-lg" style="margin: 8px;">Trading Simulator</a>
+      <a href="/lemonadelearn" class="lc-btn-outline lc-btn-lg" style="margin: 8px; color: #fff; border-color: #fff;">LemonadeLearn</a>
     </div>
   </div>
 </header>
