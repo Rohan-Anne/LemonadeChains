@@ -125,7 +125,7 @@ def create_tools(session, db):
 
     @tool
     def get_portfolio() -> str:
-        """Get the current portfolio summary including balance, stock positions, option positions, and strategies."""
+        """Get the user's full portfolio: cash balance, stock positions (with quantities and cost basis), option positions, and strategies. Use this when the user asks about their balance, holdings, positions, P&L, what they own, or portfolio value."""
         account_data = session.get('options_account')
         if not account_data:
             return "No portfolio found. Please make sure you're logged in."
@@ -159,7 +159,7 @@ def create_tools(session, db):
 
     @tool
     def add_stock_to_cart(ticker: str, action: str, quantity: int) -> str:
-        """Add a stock buy or sell order to the trading cart. Action must be 'buy' or 'sell'. User must confirm trades before they execute."""
+        """Stage a stock trade in the cart. Action must be 'buy' or 'sell'. The trade is NOT executed until the user confirms — after calling this, ask the user to confirm."""
         ticker = ticker.strip().upper()
         action = action.lower()
         if action not in ('buy', 'sell'):
@@ -188,7 +188,7 @@ def create_tools(session, db):
 
     @tool
     def add_option_to_cart(contract: str, strike: float, option_type: str, expiration: str, action: str) -> str:
-        """Add an option contract to the trading cart. option_type is 'call' or 'put'. expiration format: 'MM/DD/YYYY, HH:MM:SS AM/PM'. action is 'buy' or 'sell'."""
+        """Stage an option trade in the cart. option_type is 'call' or 'put'. expiration format: 'MM/DD/YYYY, HH:MM:SS AM/PM'. action is 'buy' or 'sell'. The trade is NOT executed until confirmed — after calling this, ask the user to confirm."""
         action = action.lower()
         option_type = option_type.lower()
         if action not in ('buy', 'sell'):
@@ -213,7 +213,7 @@ def create_tools(session, db):
 
     @tool
     def confirm_trades() -> str:
-        """Confirm and execute all trades currently in the cart. Only call this when the user explicitly confirms."""
+        """Execute all trades currently staged in the cart. Call this when the user says "yes", "confirm", "do it", "execute", "go ahead", or otherwise agrees to proceed with pending cart items."""
         from backend.OptionsAccount import OptionsAccount
 
         cart = session.get('cart', [])

@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function formatResponse(text) {
-    // Ensure it's a string
     if (typeof text !== 'string') {
       try {
         text = JSON.stringify(text, null, 2);
@@ -34,7 +33,6 @@ document.addEventListener('DOMContentLoaded', function () {
         text = String(text);
       }
     }
-    // Escape HTML then convert newlines to <br>
     return escapeHtml(text).replace(/\n/g, '<br>');
   }
 
@@ -48,6 +46,51 @@ document.addEventListener('DOMContentLoaded', function () {
     msg.innerHTML = formatResponse(text);
     messagesEl.appendChild(msg);
     scrollToBottom();
+    return msg;
+  }
+
+  function typeMessage(text, role, callback) {
+    var formatted = formatResponse(text);
+    var msg = document.createElement('div');
+    msg.className = 'chat-message ' + role + ' typing-active';
+    msg.innerHTML = '';
+    messagesEl.appendChild(msg);
+    scrollToBottom();
+
+    var i = 0;
+    var interval = setInterval(function () {
+      if (i >= formatted.length) {
+        clearInterval(interval);
+        msg.classList.remove('typing-active');
+        if (callback) callback();
+        return;
+      }
+      // Handle HTML tags atomically — don't split <br> etc across frames
+      if (formatted[i] === '<') {
+        var closeIdx = formatted.indexOf('>', i);
+        if (closeIdx !== -1) {
+          msg.innerHTML += formatted.substring(i, closeIdx + 1);
+          i = closeIdx + 1;
+        } else {
+          msg.innerHTML += formatted[i];
+          i++;
+        }
+      } else if (formatted[i] === '&') {
+        // Handle HTML entities like &amp; atomically
+        var semiIdx = formatted.indexOf(';', i);
+        if (semiIdx !== -1 && semiIdx - i < 8) {
+          msg.innerHTML += formatted.substring(i, semiIdx + 1);
+          i = semiIdx + 1;
+        } else {
+          msg.innerHTML += formatted[i];
+          i++;
+        }
+      } else {
+        msg.innerHTML += formatted[i];
+        i++;
+      }
+      scrollToBottom();
+    }, 12);
   }
 
   function addConfirmButton() {
@@ -66,9 +109,12 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function (res) { return res.json(); })
         .then(function (data) {
           if (data.success) {
-            addMessage('Trades confirmed and executed successfully! Refreshing...', 'assistant');
+            var balanceMsg = data.balance
+              ? ' New balance: $' + Number(data.balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})
+              : '';
+            addMessage('Trades confirmed!' + balanceMsg + ' Refreshing...', 'assistant');
             btn.textContent = 'Confirmed';
-            setTimeout(function () { location.reload(); }, 1500);
+            setTimeout(function () { location.reload(); }, 800);
           } else {
             addMessage('Trade confirmation failed: ' + (data.error || 'Unknown error'), 'assistant');
             btn.disabled = false;
@@ -127,6 +173,12 @@ document.addEventListener('DOMContentLoaded', function () {
         hideTyping();
         if (!data) return;
 
+        if (data.error === true) {
+          addMessage('Something went wrong. Please try again.', 'assistant');
+          sendBtn.disabled = false;
+          return;
+        }
+
         var response = data.response;
         if (typeof response !== 'string') {
           try {
@@ -136,16 +188,24 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
 
-        addMessage(response, 'assistant');
-
-        if (data.actions && data.actions.length > 0) {
-          for (var i = 0; i < data.actions.length; i++) {
-            if (data.actions[i].type === 'pending_confirmation') {
-              addConfirmButton();
-              break;
-            }
-          }
+        // If trade was confirmed via chat, show result and reload
+        if (data.trade_confirmed) {
+          typeMessage(response, 'assistant', function () {
+            setTimeout(function () { location.reload(); }, 800);
+          });
+          sendBtn.disabled = false;
+          return;
         }
+
+        var hasConfirmAction = data.actions && data.actions.length > 0 &&
+          data.actions.some(function (a) { return a.type === 'pending_confirmation'; });
+
+        // Type out assistant response, then show confirm button if needed
+        typeMessage(response, 'assistant', function () {
+          if (hasConfirmAction) {
+            addConfirmButton();
+          }
+        });
 
         // Update balance display on page if present
         if (data.balance !== undefined) {

@@ -979,6 +979,9 @@ def view_cart():
 @app.route('/confirm_trades', methods=['POST'])
 def confirm_trades():
     cart = session.get('cart', [])
+    if not cart:
+        return jsonify({'success': False, 'error': 'Cart is empty'})
+
     options_account_data = session.get('options_account')
     if not options_account_data:
         print("Confirm Trades Error: No options account found in session")  # Debug
@@ -1091,9 +1094,14 @@ def confirm_trades():
     print(f"Firestore updated with new strategies: {strategies}")
 
     session.pop('cart', None)  # Clear the cart after confirming trades
+    session.modified = True
     print(f"Cart cleared after trade confirmation")  # Debug
 
-    return jsonify({'success': True})
+    return jsonify({
+        'success': True,
+        'balance': options_account.balance,
+        'message': 'All trades executed successfully.',
+    })
 
 
 @app.route('/users')
@@ -1846,6 +1854,24 @@ def api_chat():
         if cart:
             actions.append({'type': 'pending_confirmation'})
 
+        # Belt-and-suspenders: if user said "yes"/"confirm" and cart still has items, auto-confirm
+        if cart and message.lower().strip() in ('yes', 'confirm', 'do it', 'execute', 'go ahead', 'yes please', 'yep', 'yeah', 'sure'):
+            from backend.chat_tools import create_tools
+            tools = create_tools(session, db)
+            confirm_tool = next((t for t in tools if t.name == 'confirm_trades'), None)
+            if confirm_tool:
+                confirm_result = confirm_tool.invoke({})
+                response_text = confirm_result
+                add_to_chat_history(session, 'assistant', response_text)
+                updated_account = session.get('options_account', {})
+                return jsonify({
+                    'response': response_text,
+                    'actions': [],
+                    'cart': [],
+                    'balance': updated_account.get('balance', balance),
+                    'trade_confirmed': True,
+                })
+
         updated_account = session.get('options_account', {})
         return jsonify({
             'response': response_text,
@@ -1854,11 +1880,14 @@ def api_chat():
             'balance': updated_account.get('balance', balance),
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Chat error: {e}")
         return jsonify({
             'response': 'Sorry, I encountered an error. Please try again.',
             'actions': [],
-        })
+            'error': True,
+        }), 500
 
 
 if __name__ == '__main__':

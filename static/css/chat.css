@@ -134,6 +134,19 @@
   color: var(--text-primary);
 }
 
+/* Typing cursor for progressive text display */
+.chat-message.typing-active::after {
+  content: '|';
+  font-weight: 700;
+  color: var(--color-primary);
+  animation: blink-cursor 0.6s step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* Typing Indicator */
 .chat-typing {
   align-self: flex-start;
