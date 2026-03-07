@@ -976,57 +976,50 @@ def view_cart():
     cart = session.get('cart', [])
     return render_template('cart.html', cart=cart)
 
-@app.route('/confirm_trades', methods=['POST'])
-def confirm_trades():
+def _execute_cart_trades(session, db):
+    """Shared logic for executing all trades in the cart. Returns (success, balance, results, error)."""
     cart = session.get('cart', [])
     if not cart:
-        return jsonify({'success': False, 'error': 'Cart is empty'})
+        return False, 0, [], 'Cart is empty'
 
     options_account_data = session.get('options_account')
     if not options_account_data:
-        print("Confirm Trades Error: No options account found in session")  # Debug
-        return jsonify({'success': False, 'error': 'No options account found in session.'})
+        return False, 0, [], 'No options account found in session.'
 
     options_account = OptionsAccount.from_dict(options_account_data)
     options_account.signed_in = True
 
-    user_id = session['user_id']
+    user_id = session.get('user_id')
+    if not user_id:
+        return False, 0, [], 'Not authenticated.'
+
     user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
     user_data = user_doc.to_dict()
 
-    # Ensure the user has a strategies field; if not, create an empty list
     strategies = user_data.get('strategies', [])
-
-    print(f"Processing cart: {cart}")  # Debug: log cart content
 
     shared_options_manager = OptionsManager()
     shared_r = options_account.get_risk_free_rate()
 
+    results = []
     for item in cart:
-        print(f"Processing item: {item}")  # Debug: log each item being processed
         if item['type'] == 'option':
-            # Process options trades (buy/sell)
             expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
             option_type = 'call' if 'C' in item['contract'] else 'put'
             quantity = int(item.get('quantity', 1))
             strike_price = float(item['strike'])
             ticker = item['contract'][:-15]
 
-            print(f"Processing Option: {ticker}, {strike_price}, {option_type}, {quantity}, {expiration_date}")  # Debug
-
-            
             if item['action'] == 'buy':
                 success, message = options_account.buy_option(ticker, expiration_date, option_type, strike_price, quantity)
             elif item['action'] == 'sell':
                 success, message = options_account.sell_option(ticker, expiration_date, option_type, strike_price, quantity)
             else:
                 success, message = False, "Invalid action for option"
-            
+            results.append(f"{item['action']} {option_type} {ticker}: {message}")
 
-        elif item['type'] == 'stock' or item['type'] == 'etf':
-            # Handle stock trades
-            print(f"Processing Stock/ETF: {item['contract']}, {item['action']}, {item['quantity']}")  # Debug
+        elif item['type'] in ('stock', 'etf'):
             quantity = int(item.get('quantity', 1))
             if item['action'] == 'buy':
                 success, message = options_account.buy_stock(item['contract'], quantity)
@@ -1034,13 +1027,10 @@ def confirm_trades():
                 success, message = options_account.sell_stock(item['contract'], quantity)
             else:
                 success, message = False, "Invalid action for stock"
+            results.append(f"{item['action']} {item['contract']}: {message}")
 
         elif item['type'] == 'strategy':
-            print(f"Processing strategy: {item['name']}")  # Debug: log strategy name
             strategy_contracts = []
-
-            # Process each contract in the strategy
-
             balance_change = 0
 
             for contract in item['contracts']:
@@ -1049,57 +1039,40 @@ def confirm_trades():
                 strike_price = float(contract['strike'])
                 ticker = contract['contract'][:-15]
 
-                print(f"Processing Strategy Contract: {ticker}, {strike_price}, {option_type}")  # Debug
-                
-                """
-                What was causing issues before was this paragraph, causing contracts to go both in individual positions and strategies.
-                if contract['action'] == 'buy':
-                    success, message = options_account.buy_option(ticker, expiration_date, option_type, strike_price, 1)
-                elif contract['action'] == 'sell':
-                    success, message = options_account.sell_option(ticker, expiration_date, option_type, strike_price, 1)
-                else:
-                    success, message = False, "Invalid action for option"
-                """
-
                 single_change = shared_options_manager.calculateOptionPrice(ticker, strike_price, expiration_date, option_type, shared_r)
-
                 balance_change += single_change
-
-
-                # Add contract to the strategy contracts list
                 strategy_contracts.append(contract)
 
-            
-            # After processing, add the strategy to the user's strategies list
             strategies.append({
                 'name': item['name'],
                 'contracts': strategy_contracts
             })
-
             options_account.change_balance(-1 * balance_change)
+            results.append(f"strategy {item['name']}: executed")
 
-    # Save updates
     session['options_account'] = options_account.to_dict()
-    print(f"Session updated with new options account: {session['options_account']}")  # Debug
 
-    # Update Firestore with the new strategies list
-    update_data = {
+    user_ref.update({
         'balance': options_account.balance,
         'positions': options_account.positions,
         'stockpositions': options_account.stockpositions,
-        'strategies': strategies  # Add the strategies list to the user's document
-    }
-    
-    user_ref.update(update_data)
-    print(f"Firestore updated with new strategies: {strategies}")
+        'strategies': strategies,
+    })
 
-    session.pop('cart', None)  # Clear the cart after confirming trades
+    session.pop('cart', None)
     session.modified = True
-    print(f"Cart cleared after trade confirmation")  # Debug
 
+    return True, options_account.balance, results, None
+
+
+@app.route('/confirm_trades', methods=['POST'])
+def confirm_trades():
+    success, balance, results, error = _execute_cart_trades(session, db)
+    if not success:
+        return jsonify({'success': False, 'error': error})
     return jsonify({
         'success': True,
-        'balance': options_account.balance,
+        'balance': balance,
         'message': 'All trades executed successfully.',
     })
 
@@ -1818,17 +1791,32 @@ def api_chat():
         return jsonify({'error': 'Empty message'}), 400
 
     try:
-        agent = create_agent(session, db)
         account_data = session.get('options_account', {})
         balance = account_data.get('balance', 100000)
         user_name = session.get('name', 'Trader')
+        pre_cart_had_items = bool(session.get('cart', []))
 
+        # Build cart summary for agent context
+        cart = session.get('cart', [])
+        if cart:
+            cart_lines = []
+            for item in cart:
+                if item['type'] == 'strategy':
+                    cart_lines.append(f"  - Strategy '{item['name']}' ({len(item.get('contracts', []))} contracts)")
+                else:
+                    cart_lines.append(f"  - {item['action']} {item.get('quantity', 1)} {item['type']} {item['contract']}")
+            cart_summary = "Current cart contents:\n" + "\n".join(cart_lines)
+        else:
+            cart_summary = "Cart is empty."
+
+        agent = create_agent(session, db)
         chat_history = get_chat_history_messages(session)
         result = agent.invoke({
             'input': message,
             'chat_history': chat_history,
             'user_name': user_name,
             'balance': balance,
+            'cart_summary': cart_summary,
         })
 
         raw_output = result.get('output', 'Sorry, I could not process that.')
@@ -1849,28 +1837,13 @@ def api_chat():
         add_to_chat_history(session, 'user', message)
         add_to_chat_history(session, 'assistant', response_text)
 
-        actions = []
+        # Check if cart was emptied during agent execution (i.e. confirm_trades was called)
         cart = session.get('cart', [])
+        trade_confirmed = not cart and pre_cart_had_items
+
+        actions = []
         if cart:
             actions.append({'type': 'pending_confirmation'})
-
-        # Belt-and-suspenders: if user said "yes"/"confirm" and cart still has items, auto-confirm
-        if cart and message.lower().strip() in ('yes', 'confirm', 'do it', 'execute', 'go ahead', 'yes please', 'yep', 'yeah', 'sure'):
-            from backend.chat_tools import create_tools
-            tools = create_tools(session, db)
-            confirm_tool = next((t for t in tools if t.name == 'confirm_trades'), None)
-            if confirm_tool:
-                confirm_result = confirm_tool.invoke({})
-                response_text = confirm_result
-                add_to_chat_history(session, 'assistant', response_text)
-                updated_account = session.get('options_account', {})
-                return jsonify({
-                    'response': response_text,
-                    'actions': [],
-                    'cart': [],
-                    'balance': updated_account.get('balance', balance),
-                    'trade_confirmed': True,
-                })
 
         updated_account = session.get('options_account', {})
         return jsonify({
@@ -1878,6 +1851,7 @@ def api_chat():
             'actions': actions,
             'cart': cart,
             'balance': updated_account.get('balance', balance),
+            'trade_confirmed': trade_confirmed,
         })
     except Exception as e:
         import traceback

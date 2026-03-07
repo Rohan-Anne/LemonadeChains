@@ -212,69 +212,66 @@ def create_tools(session, db):
         return f"Added {option_type} option {contract} (strike ${strike}, exp {expiration}, {action}) to cart. Please confirm the trade to execute it."
 
     @tool
+    def get_cart() -> str:
+        """Get the current contents of the trading cart. Use this to check what's staged before confirming."""
+        cart = session.get('cart', [])
+        if not cart:
+            return "Your cart is empty."
+        lines = ["Current cart:"]
+        for item in cart:
+            if item['type'] == 'strategy':
+                lines.append(f"  - Strategy '{item['name']}' ({len(item.get('contracts', []))} contracts)")
+            else:
+                lines.append(f"  - {item['action']} {item.get('quantity', 1)} {item['type']} {item['contract']}")
+        return "\n".join(lines)
+
+    @tool
+    def remove_from_cart(contract: str, action: str = "") -> str:
+        """Remove an item from the cart by contract/ticker name. For strategies, pass the strategy name. For stocks/options, pass the contract symbol. Optionally pass action ('buy'/'sell') to disambiguate."""
+        cart = session.get('cart', [])
+        if not cart:
+            return "Your cart is empty. Nothing to remove."
+
+        contract_upper = contract.strip().upper()
+        original_len = len(cart)
+
+        # Try matching as strategy name first
+        new_cart = [item for item in cart if not (
+            item.get('type') == 'strategy' and item.get('name', '').upper() == contract_upper
+        )]
+
+        # If nothing was removed, try matching by contract
+        if len(new_cart) == original_len:
+            if action:
+                new_cart = [item for item in cart if not (
+                    item.get('contract', '').upper() == contract_upper and item.get('action', '').lower() == action.lower()
+                )]
+            else:
+                new_cart = [item for item in cart if item.get('contract', '').upper() != contract_upper]
+
+        removed_count = original_len - len(new_cart)
+        if removed_count == 0:
+            return f"Could not find '{contract}' in your cart."
+
+        session['cart'] = new_cart
+        session.modified = True
+        remaining = len(new_cart)
+        return f"Removed '{contract}' from cart. {remaining} item(s) remaining."
+
+    @tool
     def confirm_trades() -> str:
-        """Execute all trades currently staged in the cart. Call this when the user says "yes", "confirm", "do it", "execute", "go ahead", or otherwise agrees to proceed with pending cart items."""
-        from backend.OptionsAccount import OptionsAccount
+        """Execute all trades currently staged in the cart. Call this IMMEDIATELY when the user says "yes", "confirm", "do it", "execute", "go ahead", or otherwise agrees to proceed with pending cart items. Do NOT ask for confirmation again."""
+        from app import _execute_cart_trades
 
         cart = session.get('cart', [])
         if not cart:
             return "Your cart is empty. Nothing to confirm."
 
-        account_data = session.get('options_account')
-        if not account_data:
-            return "No account found in session."
+        success, balance, results, error = _execute_cart_trades(session, db)
+        if not success:
+            return f"Trade failed: {error}"
 
-        options_account = OptionsAccount.from_dict(account_data)
-        options_account.signed_in = True
-
-        user_id = session.get('user_id')
-        if not user_id:
-            return "Not authenticated."
-
-        user_ref = db.collection('users').document(user_id)
-        user_doc = user_ref.get()
-        user_data = user_doc.to_dict()
-        strategies = user_data.get('strategies', [])
-
-        results = []
-        for item in cart:
-            if item['type'] == 'option':
-                from datetime import datetime, timedelta
-                expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
-                option_type = 'call' if 'C' in item['contract'] else 'put'
-                quantity = int(item.get('quantity', 1))
-                strike_price = float(item['strike'])
-                ticker_sym = item['contract'][:-15]
-
-                if item['action'] == 'buy':
-                    success, message = options_account.buy_option(ticker_sym, expiration_date, option_type, strike_price, quantity)
-                elif item['action'] == 'sell':
-                    success, message = options_account.sell_option(ticker_sym, expiration_date, option_type, strike_price, quantity)
-                else:
-                    success, message = False, "Invalid action"
-                results.append(f"{item['action']} {option_type} {ticker_sym}: {message}")
-
-            elif item['type'] in ('stock', 'etf'):
-                quantity = int(item.get('quantity', 1))
-                if item['action'] == 'buy':
-                    success, message = options_account.buy_stock(item['contract'], quantity)
-                elif item['action'] == 'sell':
-                    success, message = options_account.sell_stock(item['contract'], quantity)
-                else:
-                    success, message = False, "Invalid action"
-                results.append(f"{item['action']} {item['contract']}: {message}")
-
-        session['options_account'] = options_account.to_dict()
-        user_ref.update({
-            'balance': options_account.balance,
-            'positions': options_account.positions,
-            'stockpositions': options_account.stockpositions,
-            'strategies': strategies,
-        })
-        session.pop('cart', None)
-        session.modified = True
-
-        return f"Trades executed. New balance: ${options_account.balance:,.2f}. Results: {'; '.join(results)}"
+        return f"Trades executed. New balance: ${balance:,.2f}. Results: {'; '.join(results)}"
 
     @tool
     def sell_stock(ticker: str, quantity: int) -> str:
@@ -346,6 +343,8 @@ def create_tools(session, db):
         get_portfolio,
         add_stock_to_cart,
         add_option_to_cart,
+        get_cart,
+        remove_from_cart,
         confirm_trades,
         sell_stock,
         sell_option,
