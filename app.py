@@ -478,6 +478,9 @@ def simulator():
         if options_account_data:
             options_account = OptionsAccount.from_dict(options_account_data)
             options_account.signed_in = True  # Ensure the account is considered signed in
+            options_account.balance = user_data.get('balance', options_account.balance)
+            options_account.stockpositions = stockpositions
+            options_account.positions = positions
             options_account.strategies = strategies
             portfolio_value = options_account.get_portfolio_value()
             balance = options_account.balance
@@ -997,72 +1000,72 @@ def _execute_cart_trades(session, db):
     user_doc = user_ref.get()
     user_data = user_doc.to_dict()
 
-    strategies = user_data.get('strategies', [])
-
-    shared_options_manager = OptionsManager()
-    shared_r = options_account.get_risk_free_rate()
+    # Sync all fields from Firestore (source of truth) to avoid stale session data
+    options_account.balance = user_data.get('balance', options_account.balance)
+    options_account.positions = user_data.get('positions', {})
+    options_account.stockpositions = user_data.get('stockpositions', {})
+    raw = user_data.get('strategies', [])
+    options_account.strategies = list(raw.values()) if isinstance(raw, dict) else raw
 
     results = []
+    errors = []
     for item in cart:
-        if item['type'] == 'option':
-            expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
-            option_type = 'call' if 'C' in item['contract'] else 'put'
-            quantity = int(item.get('quantity', 1))
-            strike_price = float(item['strike'])
-            ticker = item['contract'][:-15]
+        try:
+            if item['type'] == 'option':
+                expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
+                option_type = 'call' if 'C' in item['contract'] else 'put'
+                quantity = int(item.get('quantity', 1))
+                strike_price = float(item['strike'])
+                ticker = item['contract'][:-15]
 
-            if item['action'] == 'buy':
-                success, message = options_account.buy_option(ticker, expiration_date, option_type, strike_price, quantity)
-            elif item['action'] == 'sell':
-                success, message = options_account.sell_option(ticker, expiration_date, option_type, strike_price, quantity)
-            else:
-                success, message = False, "Invalid action for option"
-            results.append(f"{item['action']} {option_type} {ticker}: {message}")
+                if item['action'] == 'buy':
+                    success, message = options_account.buy_option(ticker, expiration_date, option_type, strike_price, quantity)
+                elif item['action'] == 'sell':
+                    success, message = options_account.sell_option(ticker, expiration_date, option_type, strike_price, quantity)
+                else:
+                    success, message = False, "Invalid action for option"
+                results.append(f"{item['action']} {option_type} {ticker}: {message}")
+                if not success:
+                    errors.append(message)
 
-        elif item['type'] in ('stock', 'etf'):
-            quantity = int(item.get('quantity', 1))
-            if item['action'] == 'buy':
-                success, message = options_account.buy_stock(item['contract'], quantity)
-            elif item['action'] == 'sell':
-                success, message = options_account.sell_stock(item['contract'], quantity)
-            else:
-                success, message = False, "Invalid action for stock"
-            results.append(f"{item['action']} {item['contract']}: {message}")
+            elif item['type'] in ('stock', 'etf'):
+                quantity = int(item.get('quantity', 1))
+                if item['action'] == 'buy':
+                    success, message = options_account.buy_stock(item['contract'], quantity)
+                elif item['action'] == 'sell':
+                    success, message = options_account.sell_stock(item['contract'], quantity)
+                else:
+                    success, message = False, "Invalid action for stock"
+                results.append(f"{item['action']} {item['contract']}: {message}")
+                if not success:
+                    errors.append(message)
 
-        elif item['type'] == 'strategy':
-            strategy_contracts = []
-            balance_change = 0
+            elif item['type'] == 'strategy':
+                success, message = options_account.buy_strategy(item['name'], item['contracts'])
+                results.append(f"strategy {item['name']}: {message}")
+                if not success:
+                    errors.append(message)
 
-            for contract in item['contracts']:
-                expiration_date = datetime.strptime(contract['expiration'], "%m/%d/%Y, %I:%M:%S %p")
-                option_type = contract['option_type']
-                strike_price = float(contract['strike'])
-                ticker = contract['contract'][:-15]
-
-                single_change = shared_options_manager.calculateOptionPrice(ticker, strike_price, expiration_date, option_type, shared_r)
-                balance_change += single_change
-                strategy_contracts.append(contract)
-
-            strategies.append({
-                'name': item['name'],
-                'contracts': strategy_contracts
-            })
-            options_account.change_balance(-1 * balance_change)
-            results.append(f"strategy {item['name']}: executed")
+        except Exception as e:
+            errors.append(f"Error processing {item.get('type', 'unknown')} trade: {str(e)}")
 
     session['options_account'] = options_account.to_dict()
 
-    user_ref.update({
-        'balance': options_account.balance,
-        'positions': options_account.positions,
-        'stockpositions': options_account.stockpositions,
-        'strategies': strategies,
-    })
+    try:
+        user_ref.update({
+            'balance': options_account.balance,
+            'positions': options_account.positions,
+            'stockpositions': options_account.stockpositions,
+            'strategies': options_account.strategies,
+        })
+    except Exception as e:
+        return False, options_account.balance, results, f'Failed to save trades: {str(e)}'
 
     session.pop('cart', None)
     session.modified = True
 
-    return True, options_account.balance, results, None
+    error_msg = '; '.join(errors) if errors else None
+    return True, options_account.balance, results, error_msg
 
 
 @app.route('/confirm_trades', methods=['POST'])
@@ -1073,7 +1076,7 @@ def confirm_trades():
     return jsonify({
         'success': True,
         'balance': balance,
-        'message': 'All trades executed successfully.',
+        'message': 'All trades executed successfully.' if not error else error,
     })
 
 

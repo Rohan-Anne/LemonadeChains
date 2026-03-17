@@ -30,7 +30,7 @@ class OptionsAccount:
         self.password = password
         self.positions = {}
         self.stockpositions = {}
-        self.strategies = {}
+        self.strategies = []
         self.r = self.get_risk_free_rate()
         self.sigma = volatility
         self.signed_in = False
@@ -57,7 +57,8 @@ class OptionsAccount:
         )
         account.positions = data.get('positions', {})
         account.stockpositions = data.get('stockpositions', {})
-        account.strategies = data.get('strategies', [])
+        raw = data.get('strategies', [])
+        account.strategies = list(raw.values()) if isinstance(raw, dict) else raw
         return account
 
     def get_risk_free_rate(self):
@@ -318,11 +319,11 @@ class OptionsAccount:
         self.balance -= total_cost
 
         # Add strategy to the strategies list
-        self.strategies[strategy_name] = {
+        self.strategies.append({
             'name': strategy_name,
             'contracts': contract_details,
             'total_cost': total_cost
-        }
+        })
 
         print(f"Strategy '{strategy_name}' purchased successfully for ${total_cost}.")
         return True, f"Strategy '{strategy_name}' purchased successfully"
