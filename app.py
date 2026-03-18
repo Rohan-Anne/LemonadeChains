@@ -1912,8 +1912,14 @@ def api_chat():
             msg = 'Sorry, that request was too complex for me to handle in one go. Could you try breaking it into smaller steps?'
         elif 'rate' in error_str.lower() or 'limit' in error_str.lower():
             msg = 'I hit a rate limit. Please wait a moment and try again.'
+        elif 'authentication' in error_str.lower() or 'api key' in error_str.lower():
+            msg = 'There was an authentication error with the AI service. Please try again later.'
+        elif 'timeout' in error_str.lower():
+            msg = 'The request timed out while processing. Please try a simpler request or try again.'
         else:
-            msg = 'Sorry, something went wrong processing your request. Please try again.'
+            # Include the actual error details so users can report/debug issues
+            safe_error = error_str[:200]  # Truncate very long errors
+            msg = f'Something went wrong: {safe_error}. Please try again or rephrase your request.'
         return jsonify({
             'response': msg,
             'actions': [],

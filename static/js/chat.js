@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!data) return;
 
         if (data.error === true) {
-          var errMsg = data.response || 'Something went wrong. Please try again.';
+          var errMsg = data.response || 'An unexpected error occurred (no details returned). Please try again.';
           addMessage(errMsg, 'assistant');
           sendBtn.disabled = false;
           return;
@@ -239,9 +239,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         sendBtn.disabled = false;
       })
-      .catch(function () {
+      .catch(function (err) {
         hideTyping();
-        addMessage('Something went wrong. Please try again.', 'assistant');
+        addMessage('Network error: could not reach the server (' + (err.message || 'unknown') + '). Check your connection and try again.', 'assistant');
         sendBtn.disabled = false;
       });
   }
