@@ -3,9 +3,23 @@ import yfinance as yf
 import requests
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 from backend.OptionsManager import OptionsManager, get_batch_prices
+
+
+class StrategyLeg(BaseModel):
+    contract: str = Field(description="Option contract symbol from get_options_chain")
+    strike: float = Field(description="Strike price")
+    expiration: str = Field(description="Expiration date in YYYY-MM-DD format")
+    option_type: Literal["call", "put"] = Field(description="Option type")
+    action: Literal["buy", "sell"] = Field(description="Buy (long) or sell (short) this leg")
+
+
+class AddStrategyInput(BaseModel):
+    strategy_name: str = Field(description="Descriptive name, e.g. 'AAPL Bull Call Spread'")
+    contracts: list[StrategyLeg] = Field(description="List of option legs in the strategy")
 
 
 def _normalize_expiration(expiration: str) -> Optional[str]:
@@ -183,7 +197,7 @@ def create_tools(session, db):
                 name = strat.get('name', 'Unnamed')
                 legs = strat.get('contracts', [])
                 total_cost = strat.get('total_cost', 0)
-                leg_descs = [f"{l.get('option_type', '?')} ${l.get('strike_price', l.get('strike', '?'))}" for l in legs]
+                leg_descs = [f"{'short' if l.get('action', 'buy') == 'sell' else 'long'} {l.get('option_type', '?')} ${l.get('strike_price', l.get('strike', '?'))}" for l in legs]
                 lines.append(f"  {name}: {', '.join(leg_descs)} (cost: ${total_cost:,.2f})")
 
         return "\n".join(lines)
@@ -248,32 +262,25 @@ def create_tools(session, db):
 
         return f"Added {quantity}x {option_type} option {contract} (strike ${strike}, exp {expiration}, {action}) to cart. Please confirm the trade to execute it."
 
-    @tool
-    def add_strategy_to_cart(strategy_name: str, contracts: list) -> str:
-        """Stage a multi-leg options strategy in the cart. strategy_name is a descriptive name (e.g. 'AAPL Bull Call Spread'). contracts is a list of dicts, each with keys: contract (symbol), strike (float), expiration (YYYY-MM-DD), option_type ('call' or 'put'). The trade is NOT executed until confirmed."""
+    @tool(args_schema=AddStrategyInput)
+    def add_strategy_to_cart(strategy_name: str, contracts: list[StrategyLeg]) -> str:
+        """Stage a multi-leg options strategy in the cart. Each leg specifies action='buy' or 'sell'. The trade is NOT executed until confirmed."""
         if not strategy_name or not strategy_name.strip():
             return "Strategy name is required."
-        if not contracts or not isinstance(contracts, list) or len(contracts) < 2:
+        if not contracts or len(contracts) < 2:
             return "A strategy requires at least 2 contracts."
 
-        required_keys = {'contract', 'strike', 'expiration', 'option_type'}
         normalized = []
         for i, c in enumerate(contracts):
-            if not isinstance(c, dict):
-                return f"Contract {i+1} must be a dict with keys: {required_keys}"
-            missing = required_keys - set(c.keys())
-            if missing:
-                return f"Contract {i+1} is missing keys: {missing}"
-            if c['option_type'].lower() not in ('call', 'put'):
-                return f"Contract {i+1} option_type must be 'call' or 'put'."
-            exp_internal = _normalize_expiration(str(c['expiration']))
+            exp_internal = _normalize_expiration(str(c.expiration))
             if exp_internal is None:
-                return f"Contract {i+1} has invalid expiration: '{c['expiration']}'. Use YYYY-MM-DD."
+                return f"Contract {i+1} has invalid expiration: '{c.expiration}'. Use YYYY-MM-DD."
             normalized.append({
-                'contract': c['contract'],
-                'strike': str(c['strike']),
-                'option_type': c['option_type'].lower(),
+                'contract': c.contract,
+                'strike': str(c.strike),
+                'option_type': c.option_type,
                 'expiration': exp_internal,
+                'action': c.action,
             })
 
         cart = session.get('cart', [])
@@ -285,7 +292,7 @@ def create_tools(session, db):
         session['cart'] = cart
         session.modified = True
 
-        legs_desc = ", ".join(f"{c['option_type']} ${c['strike']}" for c in normalized)
+        legs_desc = ", ".join(f"{c['action']} {c['option_type']} ${c['strike']}" for c in normalized)
         return f"Added strategy '{strategy_name}' ({len(normalized)} legs: {legs_desc}) to cart. Please confirm to execute."
 
     @tool

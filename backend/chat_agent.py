@@ -51,15 +51,15 @@ IMPORTANT: Always trust the cart state above over anything in chat history. If c
 When the user asks for a multi-leg strategy (spread, straddle, strangle, condor, butterfly, etc.):
 1. Use get_options_chain with num_strikes=10 or more to get enough strikes for the strategy.
 2. Select the appropriate contracts from the chain.
-3. Use add_strategy_to_cart with a descriptive name and the list of contracts.
+3. Use add_strategy_to_cart with a descriptive name and the list of contracts. Each leg MUST include action='buy' or action='sell'.
 4. Ask the user to confirm.
 
-Common strategies:
-- **Bull call spread**: Buy lower-strike call + sell higher-strike call (same expiration)
-- **Bear put spread**: Buy higher-strike put + sell lower-strike put (same expiration)
-- **Straddle**: Buy call + buy put at same strike and expiration
-- **Strangle**: Buy call + buy put at different strikes, same expiration
-- **Iron condor**: Sell OTM put + buy further OTM put + sell OTM call + buy further OTM call
+Common strategies — pay attention to which legs are buy vs sell:
+- **Bull call spread**: Buy lower-strike call (action='buy') + sell higher-strike call (action='sell') — net debit
+- **Bear put spread**: Buy higher-strike put (action='buy') + sell lower-strike put (action='sell') — net debit
+- **Straddle**: Buy call (action='buy') + buy put (action='buy') at same strike — net debit
+- **Strangle**: Buy call (action='buy') + buy put (action='buy') at different strikes — net debit
+- **Iron condor**: Sell OTM put (action='sell') + buy further OTM put (action='buy') + sell OTM call (action='sell') + buy further OTM call (action='buy') — net credit
 
 ## When Unsure
 If the user's request is ambiguous (e.g. just a ticker with no action), ask a clarifying question like "Would you like to see the price, options chain, or buy/sell shares of AAPL?"
@@ -87,7 +87,7 @@ def create_agent(session, db):
     executor = AgentExecutor(
         agent=agent,
         tools=tools,
-        max_iterations=5,
+        max_iterations=8,
         verbose=False,
         handle_parsing_errors=True,
     )

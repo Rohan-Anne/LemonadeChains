@@ -298,20 +298,25 @@ class OptionsAccount:
                 print(f"Failed to calculate price for {ticker} at strike {strike_price}.")
                 return False, f"Failed to calculate price for {ticker} at strike {strike_price}"
 
-            # Calculate total cost of this contract
+            # Calculate total cost of this contract (sell legs give credit)
             contract_cost = price
-            total_cost += contract_cost
+            action = contract.get('action', 'buy').lower()
+            if action == 'sell':
+                total_cost -= contract_cost
+            else:
+                total_cost += contract_cost
 
             contract_details.append({
                 'contract': contract['contract'],
                 'strike': contract['strike'],
                 'expiration': contract['expiration'],
                 'option_type': contract['option_type'],
+                'action': action,
                 'premium': contract_cost
             })
 
-        # Check if balance is sufficient to buy the strategy
-        if total_cost > self.balance:
+        # Check if balance is sufficient (net credit strategies always pass)
+        if total_cost > 0 and total_cost > self.balance:
             print(f"Insufficient funds to buy strategy {strategy_name}. Required: {total_cost}, Available: {self.balance}")
             return False, "Insufficient funds"
 
@@ -407,7 +412,11 @@ class OptionsAccount:
                 )
 
                 if price is not None:
-                    strategy_value += price
+                    action = contract.get('action', 'buy')
+                    if action == 'sell':
+                        strategy_value -= price
+                    else:
+                        strategy_value += price
 
     
             # Add the strategy value to the total portfolio value
