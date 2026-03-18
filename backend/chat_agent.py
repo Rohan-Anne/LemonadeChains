@@ -11,7 +11,7 @@ Current balance: ${balance:,.2f}
 
 ## CURRENT CART STATE — THIS IS THE SOURCE OF TRUTH
 {cart_summary}
-IMPORTANT: Always trust the cart state above over anything in chat history. If chat history says items were added but the cart is empty, those items were removed by the user through the website.
+IMPORTANT: Always trust the cart state above over anything in chat history. If chat history says items were added but the cart shows empty, those items were already confirmed or removed — do NOT tell the user items are still in the cart. Never reference cart items from previous messages if the cart state above says empty.
 
 ## CRITICAL RULES
 - You MUST use tools to answer questions. NEVER fabricate prices, portfolio data, or options chains from memory.

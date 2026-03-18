@@ -1844,6 +1844,14 @@ def api_chat():
         cart = session.get('cart', [])
         trade_confirmed = not cart and pre_cart_had_items
 
+        # Clear chat history after trade confirmation so stale "items in cart"
+        # messages don't confuse the agent in future turns
+        if trade_confirmed:
+            session['chat_history'] = [
+                {'role': 'assistant', 'content': 'Previous trades were confirmed and executed successfully. Cart is now empty. How can I help you next?'}
+            ]
+            session.modified = True
+
         actions = []
         if cart:
             actions.append({'type': 'pending_confirmation'})
