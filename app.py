@@ -1017,10 +1017,11 @@ def _execute_cart_trades(session, db):
         try:
             if item['type'] == 'option':
                 expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
-                option_type = item.get('option_type', 'call' if 'C' in item['contract'] else 'put')
+                option_type = item['option_type']
                 quantity = int(item.get('quantity', 1))
                 strike_price = float(item['strike'])
-                ticker = item['contract'][:-15]
+                from backend.OptionsAccount import _extract_ticker_from_contract
+                ticker = _extract_ticker_from_contract(item['contract'])
 
                 if item['action'] == 'buy':
                     success, message = options_account.buy_option(ticker, expiration_date, option_type, strike_price, quantity)
@@ -1296,7 +1297,8 @@ def sell_strategy():
         expiration_date = datetime.strptime(contract['expiration'], "%m/%d/%Y, %I:%M:%S %p")
         strike_price = float(contract['strike'])
         option_type = contract['option_type']
-        ticker = contract['contract'][:-15]  # Extract the stock ticker
+        from backend.OptionsAccount import _extract_ticker_from_contract
+        ticker = _extract_ticker_from_contract(contract['contract'])
 
         # Calculate Black-Scholes value using the OptionsManager's method
         price = options_account.options_manager.calculateOptionPrice(
@@ -1311,7 +1313,11 @@ def sell_strategy():
             print(f"Failed to calculate option price for {ticker} at strike {strike_price}.")
             return jsonify({'success': False, 'error': 'Failed to calculate option price'}), 500
 
-        total_value += price
+        action = contract.get('action', 'buy')
+        if action == 'buy':
+            total_value += price  # We own this, selling gives us credit
+        else:
+            total_value -= price  # We're short this, closing costs money
 
     # Add the total value of the strategy to the user's balance
     options_account.balance += total_value
@@ -1797,11 +1803,38 @@ def api_chat():
     if not message:
         return jsonify({'error': 'Empty message'}), 400
 
+    user_id = session.get('user_id')
+
+    # Load chat history from Firestore if session doesn't have it
+    if not session.get('chat_history') and user_id:
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if user_doc.exists:
+                stored = user_doc.to_dict().get('chat_history', [])
+                if stored:
+                    session['chat_history'] = stored
+                    session.modified = True
+        except Exception:
+            pass
+
     try:
         account_data = session.get('options_account', {})
         balance = account_data.get('balance', 100000)
         user_name = session.get('name', 'Trader')
         pre_cart_had_items = bool(session.get('cart', []))
+
+        # Build page context
+        page = data.get('page', '/')
+        if page.startswith('/stock/'):
+            page_context = f'User is viewing stock detail for {page.split("/")[-1].upper()}.'
+        elif page.startswith('/options/'):
+            page_context = f'User is viewing options chain for {page.split("/")[-1].upper()}.'
+        elif page == '/simulator':
+            page_context = 'User is on the portfolio dashboard.'
+        elif page == '/cart':
+            page_context = 'User is reviewing their cart.'
+        else:
+            page_context = ''
 
         # Build cart summary for agent context
         cart = session.get('cart', [])
@@ -1824,6 +1857,7 @@ def api_chat():
             'user_name': user_name,
             'balance': balance,
             'cart_summary': cart_summary,
+            'page_context': page_context,
         })
 
         raw_output = result.get('output', 'Sorry, I could not process that.')
@@ -1844,17 +1878,18 @@ def api_chat():
         add_to_chat_history(session, 'user', message)
         add_to_chat_history(session, 'assistant', response_text)
 
+        # Persist chat history to Firestore
+        if user_id:
+            try:
+                db.collection('users').document(user_id).update({
+                    'chat_history': session['chat_history']
+                })
+            except Exception:
+                pass  # Don't fail the request if history persistence fails
+
         # Check if cart was emptied during agent execution (i.e. confirm_trades was called)
         cart = session.get('cart', [])
         trade_confirmed = not cart and pre_cart_had_items
-
-        # Clear chat history after trade confirmation so stale "items in cart"
-        # messages don't confuse the agent in future turns
-        if trade_confirmed:
-            session['chat_history'] = [
-                {'role': 'assistant', 'content': 'Previous trades were confirmed and executed successfully. Cart is now empty. How can I help you next?'}
-            ]
-            session.modified = True
 
         actions = []
         if cart:
@@ -1884,6 +1919,14 @@ def api_chat():
             'actions': [],
             'error': True,
         }), 500
+
+
+@app.route('/api/chat/history', methods=['GET'])
+def api_chat_history():
+    if 'user_id' not in session:
+        return jsonify({'history': []}), 401
+    history = session.get('chat_history', [])
+    return jsonify({'history': history[-10:]})
 
 
 if __name__ == '__main__':

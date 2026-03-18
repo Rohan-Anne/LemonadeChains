@@ -93,9 +93,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 12);
   }
 
-  function addConfirmButton() {
+  function addConfirmButton(cart) {
     var wrapper = document.createElement('div');
     wrapper.className = 'chat-message assistant';
+
+    // Show cart summary above the button
+    if (cart && cart.length > 0) {
+      var summary = document.createElement('div');
+      summary.className = 'chat-confirm-summary';
+      var summaryLines = [];
+      cart.forEach(function (item) {
+        if (item.type === 'strategy') {
+          summaryLines.push('Strategy: ' + item.name + ' (' + (item.contracts ? item.contracts.length : 0) + ' legs)');
+        } else if (item.type === 'stock') {
+          summaryLines.push(item.action + ' ' + (item.quantity || 1) + ' ' + item.contract + ' @ $' + (item.price ? item.price.toFixed(2) : '?'));
+        } else {
+          summaryLines.push(item.action + ' ' + (item.quantity || 1) + 'x ' + (item.option_type || '') + ' ' + item.contract);
+        }
+      });
+      summary.innerHTML = '<strong>Pending trades:</strong><br>' + summaryLines.join('<br>');
+      wrapper.appendChild(summary);
+    }
+
     var btn = document.createElement('button');
     btn.className = 'chat-confirm-btn';
     btn.textContent = 'Confirm Trades';
@@ -158,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: text, page: window.location.pathname }),
     })
       .then(function (res) {
         if (res.status === 401) {
@@ -204,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Type out assistant response, then show confirm button if needed
         typeMessage(response, 'assistant', function () {
           if (hasConfirmAction) {
-            addConfirmButton();
+            addConfirmButton(data.cart);
           }
         });
 
@@ -234,4 +253,20 @@ document.addEventListener('DOMContentLoaded', function () {
       sendMessage();
     }
   });
+
+  // Restore chat history on page load
+  fetch('/api/chat/history')
+    .then(function (res) {
+      if (!res.ok) return null;
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data || !data.history || data.history.length === 0) return;
+      data.history.forEach(function (msg) {
+        addMessage(msg.content, msg.role === 'user' ? 'user' : 'assistant');
+      });
+    })
+    .catch(function () {
+      // Silently fail — chat history is not critical
+    });
 });

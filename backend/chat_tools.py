@@ -94,8 +94,8 @@ def create_tools(session, db):
     @tool
     def get_stock_price(ticker: str) -> str:
         """Get the current price for a stock ticker symbol."""
-        ticker = ticker.strip().upper()
         try:
+            ticker = ticker.strip().upper()
             result = get_batch_prices([ticker])
             data = result.get(ticker, {})
             price = data.get('price')
@@ -164,43 +164,60 @@ def create_tools(session, db):
     @tool
     def get_portfolio() -> str:
         """Get the user's full portfolio: cash balance, stock positions (with quantities and cost basis), option positions, and strategies. Use this when the user asks about their balance, holdings, positions, P&L, what they own, or portfolio value."""
-        account_data = session.get('options_account')
-        if not account_data:
-            return "No portfolio found. Please make sure you're logged in."
+        try:
+            account_data = session.get('options_account')
+            if not account_data:
+                return "No portfolio found. Please make sure you're logged in."
 
-        balance = account_data.get('balance', 0)
-        stocks = account_data.get('stockpositions', {})
-        options = account_data.get('positions', {})
-        strategies = account_data.get('strategies', {})
+            balance = account_data.get('balance', 0)
+            stocks = account_data.get('stockpositions', {})
+            options = account_data.get('positions', {})
+            strategies = account_data.get('strategies', {})
 
-        lines = [f"Cash Balance: ${balance:,.2f}"]
+            lines = [f"Cash Balance: ${balance:,.2f}"]
 
-        if stocks:
-            lines.append("\nStock Positions:")
-            for key, pos in stocks.items():
-                lines.append(f"  {pos['ticker']}: {pos['quantity']} shares (cost basis: ${pos['cost']:,.2f})")
-        else:
-            lines.append("\nNo stock positions.")
+            if stocks:
+                lines.append("\nStock Positions:")
+                # Fetch current prices for all stock tickers
+                stock_tickers = [pos['ticker'] for pos in stocks.values()]
+                current_prices = get_batch_prices(stock_tickers) if stock_tickers else {}
+                for key, pos in stocks.items():
+                    ticker = pos['ticker']
+                    qty = pos['quantity']
+                    cost = pos['cost']
+                    cur_data = current_prices.get(ticker, {})
+                    cur_price = cur_data.get('price')
+                    if cur_price:
+                        current_value = cur_price * qty
+                        pnl = current_value - cost
+                        pnl_sign = '+' if pnl >= 0 else ''
+                        lines.append(f"  {ticker}: {qty} shares (cost: ${cost:,.2f}, current: ${current_value:,.2f}, P/L: {pnl_sign}${pnl:,.2f})")
+                    else:
+                        lines.append(f"  {ticker}: {qty} shares (cost basis: ${cost:,.2f})")
+            else:
+                lines.append("\nNo stock positions.")
 
-        if options:
-            lines.append("\nOption Positions:")
-            for key, pos in options.items():
-                lines.append(f"  {pos['ticker']} {pos['option_type']} strike ${pos['strike_price']} "
-                             f"x{pos['quantity']} (premium: ${pos['premium']:,.2f})")
-        else:
-            lines.append("\nNo option positions.")
+            if options:
+                lines.append("\nOption Positions:")
+                for key, pos in options.items():
+                    lines.append(f"  {pos['ticker']} {pos['option_type']} strike ${pos['strike_price']} "
+                                 f"x{pos['quantity']} (premium: ${pos['premium']:,.2f})")
+            else:
+                lines.append("\nNo option positions.")
 
-        if strategies:
-            lines.append(f"\nStrategies ({len(strategies)}):")
-            strat_items = strategies.values() if isinstance(strategies, dict) else strategies
-            for strat in strat_items:
-                name = strat.get('name', 'Unnamed')
-                legs = strat.get('contracts', [])
-                total_cost = strat.get('total_cost', 0)
-                leg_descs = [f"{'short' if l.get('action', 'buy') == 'sell' else 'long'} {l.get('option_type', '?')} ${l.get('strike_price', l.get('strike', '?'))}" for l in legs]
-                lines.append(f"  {name}: {', '.join(leg_descs)} (cost: ${total_cost:,.2f})")
+            if strategies:
+                lines.append(f"\nStrategies ({len(strategies)}):")
+                strat_items = strategies.values() if isinstance(strategies, dict) else strategies
+                for strat in strat_items:
+                    name = strat.get('name', 'Unnamed')
+                    legs = strat.get('contracts', [])
+                    total_cost = strat.get('total_cost', 0)
+                    leg_descs = [f"{'short' if l.get('action', 'buy') == 'sell' else 'long'} {l.get('option_type', '?')} ${l.get('strike_price', l.get('strike', '?'))}" for l in legs]
+                    lines.append(f"  {name}: {', '.join(leg_descs)} (cost: ${total_cost:,.2f})")
 
-        return "\n".join(lines)
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Error fetching portfolio: {e}"
 
     @tool
     def add_stock_to_cart(ticker: str, action: str, quantity: int) -> str:
@@ -216,6 +233,12 @@ def create_tools(session, db):
         price = price_data.get(ticker, {}).get('price')
         if price is None:
             return f"Could not fetch price for {ticker}."
+
+        if action == 'buy':
+            account_data = session.get('options_account', {})
+            current_balance = account_data.get('balance', 0)
+            if price * quantity > current_balance:
+                return f"Insufficient funds. Cost: ${price * quantity:,.2f}, balance: ${current_balance:,.2f}."
 
         cart = session.get('cart', [])
         cart.append({
@@ -247,11 +270,16 @@ def create_tools(session, db):
         if exp_internal is None:
             return f"Invalid expiration format: '{expiration}'. Use YYYY-MM-DD."
 
+        if action == 'buy':
+            account_data = session.get('options_account', {})
+            if account_data.get('balance', 0) <= 0:
+                return "No buying power available."
+
         cart = session.get('cart', [])
         cart.append({
             'type': 'option',
             'contract': contract,
-            'strike': str(strike),
+            'strike': float(strike),
             'option_type': option_type,
             'expiration': exp_internal,
             'action': action,
@@ -277,7 +305,7 @@ def create_tools(session, db):
                 return f"Contract {i+1} has invalid expiration: '{c.expiration}'. Use YYYY-MM-DD."
             normalized.append({
                 'contract': c.contract,
-                'strike': str(c.strike),
+                'strike': float(c.strike),
                 'option_type': c.option_type,
                 'expiration': exp_internal,
                 'action': c.action,
@@ -302,11 +330,28 @@ def create_tools(session, db):
         if not cart:
             return "Your cart is empty."
         lines = ["Current cart:"]
+        running_total = 0
         for item in cart:
             if item['type'] == 'strategy':
-                lines.append(f"  - Strategy '{item['name']}' ({len(item.get('contracts', []))} contracts)")
-            else:
-                lines.append(f"  - {item['action']} {item.get('quantity', 1)} {item['type']} {item['contract']}")
+                legs_desc = []
+                for leg in item.get('contracts', []):
+                    legs_desc.append(f"    {leg.get('action', 'buy')} {leg.get('option_type', '?')} ${leg.get('strike', '?')} exp {leg.get('expiration', '?')}")
+                lines.append(f"  - Strategy '{item['name']}' ({len(item.get('contracts', []))} legs):")
+                lines.extend(legs_desc)
+            elif item['type'] == 'stock':
+                qty = item.get('quantity', 1)
+                price = item.get('price', 0)
+                total = price * qty
+                lines.append(f"  - {item['action']} {qty} {item['contract']} @ ${price:.2f} = ${total:,.2f}")
+                if item['action'] == 'buy':
+                    running_total += total
+                else:
+                    running_total -= total
+            elif item['type'] == 'option':
+                qty = item.get('quantity', 1)
+                lines.append(f"  - {item['action']} {qty}x {item.get('option_type', '?')} {item['contract']} strike ${item.get('strike', '?')} exp {item.get('expiration', '?')}")
+        if running_total:
+            lines.append(f"\nEstimated stock total: ${running_total:,.2f}")
         return "\n".join(lines)
 
     @tool
@@ -363,64 +408,101 @@ def create_tools(session, db):
     @tool
     def sell_stock(ticker: str, quantity: int) -> str:
         """Sell shares of a stock immediately. This executes right away without needing cart confirmation."""
-        from backend.OptionsAccount import OptionsAccount
+        try:
+            from backend.OptionsAccount import OptionsAccount
 
-        ticker = ticker.strip().upper()
-        account_data = session.get('options_account')
-        if not account_data:
-            return "No account found."
+            ticker = ticker.strip().upper()
+            account_data = session.get('options_account')
+            if not account_data:
+                return "No account found."
 
-        options_account = OptionsAccount.from_dict(account_data)
-        options_account.signed_in = True
+            options_account = OptionsAccount.from_dict(account_data)
+            options_account.signed_in = True
 
-        success, message = options_account.sell_stock(ticker, quantity)
-        if not success:
-            return message
+            success, message = options_account.sell_stock(ticker, quantity)
+            if not success:
+                return message
 
-        session['options_account'] = options_account.to_dict()
-        user_id = session.get('user_id')
-        if user_id:
-            user_ref = db.collection('users').document(user_id)
-            user_ref.update({
-                'balance': options_account.balance,
-                'stockpositions': options_account.stockpositions,
-            })
-        session.modified = True
+            session['options_account'] = options_account.to_dict()
+            user_id = session.get('user_id')
+            if user_id:
+                user_ref = db.collection('users').document(user_id)
+                user_ref.update({
+                    'balance': options_account.balance,
+                    'stockpositions': options_account.stockpositions,
+                })
+            session.modified = True
 
-        return f"Sold {quantity} shares of {ticker}. New balance: ${options_account.balance:,.2f}"
+            return f"Sold {quantity} shares of {ticker}. New balance: ${options_account.balance:,.2f}"
+        except Exception as e:
+            return f"Error selling stock: {e}"
 
     @tool
     def sell_option(ticker: str, strike: float, option_type: str, expiration: str, quantity: int = 1) -> str:
         """Sell an option position immediately. option_type is 'call' or 'put'. expiration format: YYYY-MM-DD (as returned by get_options_chain)."""
-        from backend.OptionsAccount import OptionsAccount
+        try:
+            from backend.OptionsAccount import OptionsAccount
 
-        account_data = session.get('options_account')
-        if not account_data:
-            return "No account found."
+            account_data = session.get('options_account')
+            if not account_data:
+                return "No account found."
 
-        options_account = OptionsAccount.from_dict(account_data)
-        options_account.signed_in = True
+            options_account = OptionsAccount.from_dict(account_data)
+            options_account.signed_in = True
 
-        exp_internal = _normalize_expiration(expiration)
-        if exp_internal is None:
-            return f"Invalid expiration format: '{expiration}'. Use YYYY-MM-DD."
-        exp_date = datetime.strptime(exp_internal, "%m/%d/%Y, %I:%M:%S %p")
+            exp_internal = _normalize_expiration(expiration)
+            if exp_internal is None:
+                return f"Invalid expiration format: '{expiration}'. Use YYYY-MM-DD."
+            exp_date = datetime.strptime(exp_internal, "%m/%d/%Y, %I:%M:%S %p")
 
-        success, message = options_account.sell_option(ticker.upper(), exp_date, option_type.lower(), strike, quantity)
-        if not success:
+            success, message = options_account.sell_option(ticker.upper(), exp_date, option_type.lower(), strike, quantity)
+            if not success:
+                return message
+
+            session['options_account'] = options_account.to_dict()
+            user_id = session.get('user_id')
+            if user_id:
+                user_ref = db.collection('users').document(user_id)
+                user_ref.update({
+                    'balance': options_account.balance,
+                    'positions': options_account.positions,
+                })
+            session.modified = True
+
+            return f"Sold {quantity} {option_type} option(s) for {ticker.upper()} (strike ${strike}). New balance: ${options_account.balance:,.2f}"
+        except Exception as e:
+            return f"Error selling option: {e}"
+
+    @tool
+    def sell_strategy(strategy_name: str) -> str:
+        """Sell/close an entire strategy position immediately. Pass the strategy name as shown in the portfolio."""
+        try:
+            from backend.OptionsAccount import OptionsAccount
+
+            account_data = session.get('options_account')
+            if not account_data:
+                return "No account found."
+
+            options_account = OptionsAccount.from_dict(account_data)
+            options_account.signed_in = True
+
+            success, message = options_account.sell_strategy(strategy_name)
+            if not success:
+                return message
+
+            session['options_account'] = options_account.to_dict()
+            user_id = session.get('user_id')
+            if user_id:
+                user_ref = db.collection('users').document(user_id)
+                user_ref.update({
+                    'balance': options_account.balance,
+                    'strategies': options_account.strategies,
+                })
+            session.modified = True
+
             return message
-
-        session['options_account'] = options_account.to_dict()
-        user_id = session.get('user_id')
-        if user_id:
-            user_ref = db.collection('users').document(user_id)
-            user_ref.update({
-                'balance': options_account.balance,
-                'positions': options_account.positions,
-            })
-        session.modified = True
-
-        return f"Sold {quantity} {option_type} option(s) for {ticker.upper()} (strike ${strike}). New balance: ${options_account.balance:,.2f}"
+        except Exception as e:
+            return f"Error selling strategy: {e}"
 
     return [
         search_ticker,
@@ -435,4 +517,5 @@ def create_tools(session, db):
         confirm_trades,
         sell_stock,
         sell_option,
+        sell_strategy,
     ]

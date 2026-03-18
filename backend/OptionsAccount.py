@@ -20,6 +20,15 @@ logging.basicConfig(filename='options_account.log', level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(message)s')
 
 
+def _extract_ticker_from_contract(contract_symbol):
+    """Extract ticker from yfinance option symbol like AAPL250620C00150000."""
+    match = re.match(r'^([A-Z]+)\d{6}[CP]\d{8}$', contract_symbol)
+    if match:
+        return match.group(1)
+    match = re.match(r'^([A-Z]+)', contract_symbol)
+    return match.group(1) if match else contract_symbol
+
+
 
 class OptionsAccount:
 
@@ -55,7 +64,31 @@ class OptionsAccount:
             risk_free_rate=data.get('risk_free_rate', 0.01),
             volatility=data.get('volatility', 0.2)
         )
-        account.positions = data.get('positions', {})
+        raw_positions = data.get('positions', {})
+        # Migrate old-format keys (e.g. "call_150.0") to new format ("AAPL_call_150.0_20250620")
+        migrated = {}
+        for key, pos in raw_positions.items():
+            parts = key.split('_')
+            if len(parts) <= 2:
+                # Old format — rebuild key from position data
+                ticker = pos.get('ticker', '')
+                opt_type = pos.get('option_type', '')
+                strike = pos.get('strike_price', '')
+                exp = pos.get('expiration_date')
+                if isinstance(exp, str):
+                    try:
+                        exp = datetime.strptime(exp, "%m/%d/%Y, %I:%M:%S %p")
+                    except ValueError:
+                        try:
+                            exp = datetime.strptime(exp, "%Y-%m-%d")
+                        except ValueError:
+                            pass
+                exp_str = exp.strftime("%Y%m%d") if isinstance(exp, datetime) else ""
+                new_key = f"{ticker}_{opt_type}_{strike}_{exp_str}"
+                migrated[new_key] = pos
+            else:
+                migrated[key] = pos
+        account.positions = migrated
         account.stockpositions = data.get('stockpositions', {})
         raw = data.get('strategies', [])
         account.strategies = list(raw.values()) if isinstance(raw, dict) else raw
@@ -211,7 +244,8 @@ class OptionsAccount:
             return False, "Insufficient funds"
 
         self.balance -= total_cost
-        option_key = f"{option_type}_{strike_price}"
+        exp_str = date.strftime("%Y%m%d")
+        option_key = f"{ticker}_{option_type}_{strike_price}_{exp_str}"
         if option_key in self.positions:
             self.positions[option_key]['quantity'] += quantity
             self.positions[option_key]['premium'] += total_cost
@@ -244,9 +278,10 @@ class OptionsAccount:
      # Ensure that the expiration date is correctly passed
      if date < datetime.now():
          print(f"Option expired on {date}, cannot sell.")
-         raise ValueError("Option expired, cannot sell.")
+         return False, "Option expired, cannot sell."
 
-     option_key = f"{option_type}_{strike_price}"
+     exp_str = date.strftime("%Y%m%d")
+     option_key = f"{ticker}_{option_type}_{strike_price}_{exp_str}"
      if option_key not in self.positions:
          print("Option position not found.")
          return False, "Failed to find option position"
@@ -283,7 +318,7 @@ class OptionsAccount:
             expiration_date = datetime.strptime(contract['expiration'], "%m/%d/%Y, %I:%M:%S %p") + timedelta(days=1)
             strike_price = float(contract['strike'])
             option_type = contract['option_type']
-            ticker = contract['contract'][:-15]  # Extract the stock ticker
+            ticker = _extract_ticker_from_contract(contract['contract'])
 
             # Calculate the price using OptionsManager
             price = self.options_manager.calculateOptionPrice(
@@ -333,6 +368,52 @@ class OptionsAccount:
         print(f"Strategy '{strategy_name}' purchased successfully for ${total_cost}.")
         return True, f"Strategy '{strategy_name}' purchased successfully"
 
+    def sell_strategy(self, strategy_name):
+        """Sell/close a strategy position. Returns (success, message)."""
+        if not self.signed_in:
+            return False, "User not signed in"
+
+        # Find strategy by name (case-insensitive)
+        strategy_to_sell = None
+        strategy_index = None
+        for i, strategy in enumerate(self.strategies):
+            if strategy['name'].lower() == strategy_name.lower():
+                strategy_to_sell = strategy
+                strategy_index = i
+                break
+
+        if strategy_to_sell is None:
+            return False, f"Strategy '{strategy_name}' not found in portfolio."
+
+        total_value = 0
+        for contract in strategy_to_sell['contracts']:
+            expiration_date = datetime.strptime(contract['expiration'], "%m/%d/%Y, %I:%M:%S %p")
+            strike_price = float(contract['strike'])
+            option_type = contract['option_type']
+            ticker = _extract_ticker_from_contract(contract['contract'])
+
+            price = self.options_manager.calculateOptionPrice(
+                ticker=ticker,
+                strike_price=strike_price,
+                expiration_date=expiration_date,
+                option_type=option_type,
+                r=self.r
+            )
+
+            if price is None:
+                return False, f"Failed to calculate price for {ticker} at strike {strike_price}."
+
+            # Closing: buy legs give credit, sell legs cost money
+            action = contract.get('action', 'buy')
+            if action == 'buy':
+                total_value += price  # We own this, selling gives credit
+            else:
+                total_value -= price  # We're short this, buying back costs
+
+        self.balance += total_value
+        self.strategies.pop(strategy_index)
+
+        return True, f"Strategy '{strategy_name}' sold for ${total_value:.2f}. New balance: ${self.balance:,.2f}"
 
     def display_balance(self):
         print(f"Current Account Balance: ${self.balance}")
@@ -365,7 +446,7 @@ class OptionsAccount:
             all_tickers.add(position['ticker'])
         for strategy in self.strategies:
             for contract in strategy['contracts']:
-                all_tickers.add(contract['contract'][:-15])
+                all_tickers.add(_extract_ticker_from_contract(contract['contract']))
         if all_tickers:
             get_batch_prices(list(all_tickers))
 
@@ -394,7 +475,7 @@ class OptionsAccount:
             strategy_value = 0
             for contract in strategy['contracts']:
                 logging.debug("Just started iterating through contracts.")
-                ticker = contract['contract'][:-15]  # Extract the ticker
+                ticker = _extract_ticker_from_contract(contract['contract'])
                 strike_price = float(contract['strike'])
                 print(strike_price)
                 option_type = contract['option_type']
