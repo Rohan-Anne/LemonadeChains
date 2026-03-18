@@ -2,8 +2,31 @@ import json
 import yfinance as yf
 import requests
 import time
+from datetime import datetime
+from typing import Optional
 from langchain_core.tools import tool
 from backend.OptionsManager import OptionsManager, get_batch_prices
+
+
+def _normalize_expiration(expiration: str) -> Optional[str]:
+    """Convert expiration to the internal format 'MM/DD/YYYY, 04:00:00 PM'.
+
+    Accepts YYYY-MM-DD (preferred, from get_options_chain) or the legacy
+    MM/DD/YYYY, HH:MM:SS AM/PM format. Returns None if unparseable.
+    """
+    expiration = expiration.strip()
+    # Try YYYY-MM-DD first (returned by get_options_chain / yfinance)
+    try:
+        dt = datetime.strptime(expiration, "%Y-%m-%d")
+        return dt.strftime("%m/%d/%Y, 04:00:00 PM")
+    except ValueError:
+        pass
+    # Accept legacy format as-is
+    try:
+        datetime.strptime(expiration, "%m/%d/%Y, %I:%M:%S %p")
+        return expiration
+    except ValueError:
+        return None
 
 
 def _search_ticker_logic(query):
@@ -69,9 +92,10 @@ def create_tools(session, db):
             return f"Error fetching price for {ticker}: {e}"
 
     @tool
-    def get_options_chain(ticker: str, expiration: str = "") -> str:
-        """Get the options chain for a ticker. Optionally specify an expiration date (YYYY-MM-DD). Returns near-the-money calls and puts."""
+    def get_options_chain(ticker: str, expiration: str = "", num_strikes: int = 5) -> str:
+        """Get the options chain for a ticker. Optionally specify an expiration date (YYYY-MM-DD) and num_strikes (1-20, default 5). Returns near-the-money calls and puts with contract symbols, strikes, and prices. Use more strikes (10-15) when building multi-leg strategies."""
         ticker = ticker.strip().upper()
+        num_strikes = max(1, min(20, num_strikes))
         try:
             om = OptionsManager()
             stock = yf.Ticker(ticker)
@@ -108,15 +132,15 @@ def create_tools(session, db):
                     })
                 return rows
 
-            calls = summarize(chain.calls)
-            puts = summarize(chain.puts)
+            calls = summarize(chain.calls, num_strikes)
+            puts = summarize(chain.puts, num_strikes)
 
             result = {
                 'ticker': ticker,
                 'expiration': exp,
                 'currentPrice': current_price,
-                'nearTheMoneyCallsTop5': calls,
-                'nearTheMoneyPutsTop5': puts,
+                'calls': calls,
+                'puts': puts,
                 'allExpirations': available_exps[:10],
             }
             return json.dumps(result, indent=2)
@@ -153,7 +177,14 @@ def create_tools(session, db):
             lines.append("\nNo option positions.")
 
         if strategies:
-            lines.append(f"\nStrategies: {len(strategies) if isinstance(strategies, (list, dict)) else 0}")
+            lines.append(f"\nStrategies ({len(strategies)}):")
+            strat_items = strategies.values() if isinstance(strategies, dict) else strategies
+            for strat in strat_items:
+                name = strat.get('name', 'Unnamed')
+                legs = strat.get('contracts', [])
+                total_cost = strat.get('total_cost', 0)
+                leg_descs = [f"{l.get('option_type', '?')} ${l.get('strike_price', l.get('strike', '?'))}" for l in legs]
+                lines.append(f"  {name}: {', '.join(leg_descs)} (cost: ${total_cost:,.2f})")
 
         return "\n".join(lines)
 
@@ -187,14 +218,20 @@ def create_tools(session, db):
         return f"Added {quantity} shares of {ticker} ({action}) to cart at ${price:.2f}/share (total: ${total:,.2f}). Please confirm the trade to execute it."
 
     @tool
-    def add_option_to_cart(contract: str, strike: float, option_type: str, expiration: str, action: str) -> str:
-        """Stage an option trade in the cart. option_type is 'call' or 'put'. expiration format: 'MM/DD/YYYY, HH:MM:SS AM/PM'. action is 'buy' or 'sell'. The trade is NOT executed until confirmed — after calling this, ask the user to confirm."""
+    def add_option_to_cart(contract: str, strike: float, option_type: str, expiration: str, action: str, quantity: int = 1) -> str:
+        """Stage an option trade in the cart. option_type is 'call' or 'put'. expiration format: YYYY-MM-DD (as returned by get_options_chain). action is 'buy' or 'sell'. quantity defaults to 1. The trade is NOT executed until confirmed — after calling this, ask the user to confirm."""
         action = action.lower()
         option_type = option_type.lower()
         if action not in ('buy', 'sell'):
             return "Action must be 'buy' or 'sell'."
         if option_type not in ('call', 'put'):
             return "Option type must be 'call' or 'put'."
+        if quantity <= 0:
+            return "Quantity must be positive."
+
+        exp_internal = _normalize_expiration(expiration)
+        if exp_internal is None:
+            return f"Invalid expiration format: '{expiration}'. Use YYYY-MM-DD."
 
         cart = session.get('cart', [])
         cart.append({
@@ -202,14 +239,54 @@ def create_tools(session, db):
             'contract': contract,
             'strike': str(strike),
             'option_type': option_type,
-            'expiration': expiration,
+            'expiration': exp_internal,
             'action': action,
-            'quantity': 1,
+            'quantity': quantity,
         })
         session['cart'] = cart
         session.modified = True
 
-        return f"Added {option_type} option {contract} (strike ${strike}, exp {expiration}, {action}) to cart. Please confirm the trade to execute it."
+        return f"Added {quantity}x {option_type} option {contract} (strike ${strike}, exp {expiration}, {action}) to cart. Please confirm the trade to execute it."
+
+    @tool
+    def add_strategy_to_cart(strategy_name: str, contracts: list) -> str:
+        """Stage a multi-leg options strategy in the cart. strategy_name is a descriptive name (e.g. 'AAPL Bull Call Spread'). contracts is a list of dicts, each with keys: contract (symbol), strike (float), expiration (YYYY-MM-DD), option_type ('call' or 'put'). The trade is NOT executed until confirmed."""
+        if not strategy_name or not strategy_name.strip():
+            return "Strategy name is required."
+        if not contracts or not isinstance(contracts, list) or len(contracts) < 2:
+            return "A strategy requires at least 2 contracts."
+
+        required_keys = {'contract', 'strike', 'expiration', 'option_type'}
+        normalized = []
+        for i, c in enumerate(contracts):
+            if not isinstance(c, dict):
+                return f"Contract {i+1} must be a dict with keys: {required_keys}"
+            missing = required_keys - set(c.keys())
+            if missing:
+                return f"Contract {i+1} is missing keys: {missing}"
+            if c['option_type'].lower() not in ('call', 'put'):
+                return f"Contract {i+1} option_type must be 'call' or 'put'."
+            exp_internal = _normalize_expiration(str(c['expiration']))
+            if exp_internal is None:
+                return f"Contract {i+1} has invalid expiration: '{c['expiration']}'. Use YYYY-MM-DD."
+            normalized.append({
+                'contract': c['contract'],
+                'strike': str(c['strike']),
+                'option_type': c['option_type'].lower(),
+                'expiration': exp_internal,
+            })
+
+        cart = session.get('cart', [])
+        cart.append({
+            'type': 'strategy',
+            'name': strategy_name.strip(),
+            'contracts': normalized,
+        })
+        session['cart'] = cart
+        session.modified = True
+
+        legs_desc = ", ".join(f"{c['option_type']} ${c['strike']}" for c in normalized)
+        return f"Added strategy '{strategy_name}' ({len(normalized)} legs: {legs_desc}) to cart. Please confirm to execute."
 
     @tool
     def get_cart() -> str:
@@ -304,9 +381,8 @@ def create_tools(session, db):
 
     @tool
     def sell_option(ticker: str, strike: float, option_type: str, expiration: str, quantity: int = 1) -> str:
-        """Sell an option position immediately. option_type is 'call' or 'put'. expiration format: 'MM/DD/YYYY, HH:MM:SS AM/PM'."""
+        """Sell an option position immediately. option_type is 'call' or 'put'. expiration format: YYYY-MM-DD (as returned by get_options_chain)."""
         from backend.OptionsAccount import OptionsAccount
-        from datetime import datetime
 
         account_data = session.get('options_account')
         if not account_data:
@@ -315,10 +391,10 @@ def create_tools(session, db):
         options_account = OptionsAccount.from_dict(account_data)
         options_account.signed_in = True
 
-        try:
-            exp_date = datetime.strptime(expiration, "%m/%d/%Y, %I:%M:%S %p")
-        except ValueError:
-            return f"Invalid expiration format. Use 'MM/DD/YYYY, HH:MM:SS AM/PM'."
+        exp_internal = _normalize_expiration(expiration)
+        if exp_internal is None:
+            return f"Invalid expiration format: '{expiration}'. Use YYYY-MM-DD."
+        exp_date = datetime.strptime(exp_internal, "%m/%d/%Y, %I:%M:%S %p")
 
         success, message = options_account.sell_option(ticker.upper(), exp_date, option_type.lower(), strike, quantity)
         if not success:
@@ -343,6 +419,7 @@ def create_tools(session, db):
         get_portfolio,
         add_stock_to_cart,
         add_option_to_cart,
+        add_strategy_to_cart,
         get_cart,
         remove_from_cart,
         confirm_trades,
