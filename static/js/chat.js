@@ -174,7 +174,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!data) return;
 
         if (data.error === true) {
-          addMessage('Something went wrong. Please try again.', 'assistant');
+          var errMsg = data.response || 'Something went wrong. Please try again.';
+          addMessage(errMsg, 'assistant');
           sendBtn.disabled = false;
           return;
         }

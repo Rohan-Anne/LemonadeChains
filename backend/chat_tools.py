@@ -351,7 +351,10 @@ def create_tools(session, db):
         if not cart:
             return "Your cart is empty. Nothing to confirm."
 
-        success, balance, results, error = _execute_cart_trades(session, db)
+        try:
+            success, balance, results, error = _execute_cart_trades(session, db)
+        except Exception as e:
+            return f"Trade execution error: {e}"
         if not success:
             return f"Trade failed: {error}"
 

@@ -998,7 +998,11 @@ def _execute_cart_trades(session, db):
 
     user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
+    if not user_doc.exists:
+        return False, 0, [], 'User document not found in database.'
     user_data = user_doc.to_dict()
+    if not user_data:
+        return False, 0, [], 'User document is empty.'
 
     # Sync all fields from Firestore (source of truth) to avoid stale session data
     options_account.balance = user_data.get('balance', options_account.balance)
@@ -1013,7 +1017,7 @@ def _execute_cart_trades(session, db):
         try:
             if item['type'] == 'option':
                 expiration_date = datetime.strptime(item['expiration'], "%m/%d/%Y, %I:%M:%S %p")
-                option_type = 'call' if 'C' in item['contract'] else 'put'
+                option_type = item.get('option_type', 'call' if 'C' in item['contract'] else 'put')
                 quantity = int(item.get('quantity', 1))
                 strike_price = float(item['strike'])
                 ticker = item['contract'][:-15]
@@ -1868,8 +1872,15 @@ def api_chat():
         import traceback
         traceback.print_exc()
         print(f"Chat error: {e}")
+        error_str = str(e)
+        if 'iteration' in error_str.lower() or 'max' in error_str.lower():
+            msg = 'Sorry, that request was too complex for me to handle in one go. Could you try breaking it into smaller steps?'
+        elif 'rate' in error_str.lower() or 'limit' in error_str.lower():
+            msg = 'I hit a rate limit. Please wait a moment and try again.'
+        else:
+            msg = 'Sorry, something went wrong processing your request. Please try again.'
         return jsonify({
-            'response': 'Sorry, I encountered an error. Please try again.',
+            'response': msg,
             'actions': [],
             'error': True,
         }), 500
